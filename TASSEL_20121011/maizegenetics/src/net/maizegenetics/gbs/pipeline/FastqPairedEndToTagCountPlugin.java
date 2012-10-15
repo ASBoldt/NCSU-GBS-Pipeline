@@ -122,8 +122,16 @@ public class FastqToTagCountPlugin extends AbstractPlugin {
      */
     public static void countTags(String keyFileS, String enzyme, String fastqDirectory, String outputDir, int maxGoodReads, int minCount) {
         BufferedReader br;
+        //COUNTER VARIABLE
         String[] countFileNames = null;
 
+        /**
+         * 
+         * THIS IS WHERE FILE INPUT NEEDS TO BE ADJUSTED, TRY TO
+         * CONTINUE TO USE THE DIRECTORY CRAWLER AND PARSE THE OUTPUT TO READ1
+         * AND READ2
+         * 
+         */
         File inputDirectory = new File(fastqDirectory);
         File[] fastqFiles = DirectoryCrawler.listFiles("(?i).*\\.fq$|.*\\.fq\\.gz$|.*\\.fastq$|.*_fastq\\.txt$|.*_fastq\\.gz$|.*_fastq\\.txt\\.gz$|.*_sequence\\.txt$|.*_sequence\\.txt\\.gz$", inputDirectory.getAbsolutePath());
 //                                                      (?i) denotes case insensitive;                 \\. denotes escape . so it doesn't mean 'any char' & escape the backslash
@@ -131,6 +139,9 @@ public class FastqToTagCountPlugin extends AbstractPlugin {
             System.out.println("Couldn't find any files that end with \".fq\", \".fq.gz\", \".fastq\", \"_fastq.txt\", \"_fastq.gz\", \"_fastq.txt.gz\", \"_sequence.txt\", or \"_sequence.txt.gz\" in the supplied directory.");
         } else {
             System.out.println("Using the following FASTQ files:");
+            
+            //COUNTS HOW MANY FILES ARE INPUT
+            
             countFileNames = new String[fastqFiles.length];
             for (int i=0; i<fastqFiles.length; i++) {
                 countFileNames[i] = fastqFiles[i].getName().replaceAll
