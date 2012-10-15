@@ -30,6 +30,8 @@ public class FastqToTagCountPlugin extends AbstractPlugin {
     static long timePoint1;
     private ArgsEngine engine = null;
     private Logger logger = Logger.getLogger(FastqToTagCountPlugin.class);
+// DEPENDING ON APPROACH, MAY NEED TO ADD ADDITIONAL DIRECOTORYnAME, OR
+// LOOP THROUGH THIS ONE TWICE
     String directoryName=null;
     String keyfile=null;
     String enzyme = null;
@@ -78,15 +80,19 @@ public class FastqToTagCountPlugin extends AbstractPlugin {
 //        try{
             if(engine == null){
                 engine = new ArgsEngine();
+//NEED TO MODIFY TO SET TO TWO FILE LOCATIONS
                 engine.add("-i", "--input-directory", true);
+//MAY NEED TO MODIFY TO TAKE IN TWO KEY FILES
                 engine.add("-k", "--key-file", true);
+//NEED TO MODIFY TO SET TWO ENZYMES
                 engine.add("-e", "--enzyme", true);
                 engine.add("-s", "--max-reads", true);
                 engine.add("-c", "--min-count", true);
                 engine.add("-o", "--output-file", true);
                 engine.parse(args);
             }
-
+//CREATE A NESTING LOOP THAT RUNS THROUGH THE TWO DIRECTORIES AND CHECKS
+// FOR THE TWO ENZYMES
             if (engine.getBoolean("-i")) { directoryName = engine.getString("-i");}
             else{ printUsage(); throw new IllegalArgumentException("Please specify the location of your FASTQ files."); }
 
@@ -98,7 +104,7 @@ public class FastqToTagCountPlugin extends AbstractPlugin {
                 System.out.println("No enzyme specified.  Using enzyme listed in key file.");
 //                printUsage(); throw new IllegalArgumentException("Please specify the enzyme used to create the GBS library.");
             }
-
+//END THE NEST LOOP HERE
             if(engine.getBoolean("-s")){ maxGoodReads = Integer.parseInt(engine.getString("-s"));}
 
             if (engine.getBoolean("-c")) { minCount = Integer.parseInt(engine.getString("-c"));}
@@ -122,16 +128,16 @@ public class FastqToTagCountPlugin extends AbstractPlugin {
      */
     public static void countTags(String keyFileS, String enzyme, String fastqDirectory, String outputDir, int maxGoodReads, int minCount) {
         BufferedReader br;
-        //COUNTER VARIABLE
+//COUNTER VARIABLE
         String[] countFileNames = null;
 
-        /**
-         * 
-         * THIS IS WHERE FILE INPUT NEEDS TO BE ADJUSTED, TRY TO
-         * CONTINUE TO USE THE DIRECTORY CRAWLER AND PARSE THE OUTPUT TO READ1
-         * AND READ2
-         * 
-         */
+/**
+* 
+* THIS IS WHERE FILE INPUT NEEDS TO BE ADJUSTED, TRY TO
+* CONTINUE TO USE THE DIRECTORY CRAWLER AND PARSE THE OUTPUT TO READ1
+* AND READ2
+* 
+*/
         File inputDirectory = new File(fastqDirectory);
         File[] fastqFiles = DirectoryCrawler.listFiles("(?i).*\\.fq$|.*\\.fq\\.gz$|.*\\.fastq$|.*_fastq\\.txt$|.*_fastq\\.gz$|.*_fastq\\.txt\\.gz$|.*_sequence\\.txt$|.*_sequence\\.txt\\.gz$", inputDirectory.getAbsolutePath());
 //                                                      (?i) denotes case insensitive;                 \\. denotes escape . so it doesn't mean 'any char' & escape the backslash
@@ -140,8 +146,7 @@ public class FastqToTagCountPlugin extends AbstractPlugin {
         } else {
             System.out.println("Using the following FASTQ files:");
             
-            //COUNTS HOW MANY FILES ARE INPUT
-            
+//COUNTS HOW MANY FILES THERE ARE IN THE INPUT            
             countFileNames = new String[fastqFiles.length];
             for (int i=0; i<fastqFiles.length; i++) {
                 countFileNames[i] = fastqFiles[i].getName().replaceAll
@@ -245,19 +250,21 @@ public class FastqToTagCountPlugin extends AbstractPlugin {
             System.out.println("Finished reading "+(laneNum+1)+" of "+fastqFiles.length+" sequence files.");
         }
     }
-
-    @Override
-    public ImageIcon getIcon() {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
-    public String getButtonName() {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
-    public String getToolTipText() {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
+//COMMENTING OUT FUNCTIONS THAT DON'T APPEAR TO BE IMMEDIATELY RELATED TO THE CURRENT OBJECTIVE
+//
+//    @Override
+//    public ImageIcon getIcon() {
+//       throw new UnsupportedOperationException("Not supported yet.");
+//    }
+//
+//    @Override
+//    public String getButtonName() {
+//        throw new UnsupportedOperationException("Not supported yet.");
+//    }
+//
+//    @Override
+//    public String getToolTipText() {
+//        throw new UnsupportedOperationException("Not supported yet.");
+//    }
+    
 }
