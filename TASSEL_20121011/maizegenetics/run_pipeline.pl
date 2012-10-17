@@ -17,6 +17,7 @@ foreach my $fn(@list){
    }
 }
 push(@fl, "$top/dist/sTASSEL.jar");
+push(@fl, "$top/dist/sTASSELGBS.jar");
 my $CP = join(":", @fl);
 print $CP . "\n";
 
