@@ -1,4 +1,6 @@
 #!/usr/bin/perl -w
+#if you make any changes or additions to pluigins you have
+#to run 'ant' to get updated jar files
 
 use strict;
 use File::Basename;
