@@ -26,10 +26,10 @@ import org.apache.log4j.Logger;
  * that (1) have a second cut site, or (2) read into the common adapter.
  * 
  */
-public class FastqPariedEndToTagCountPlugin extends AbstractPlugin {  
+public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {  
     static long timePoint1;
     private ArgsEngine engine = null;
-    private Logger logger = Logger.getLogger(FastqPariedEndToTagCountPlugin.class);
+    private Logger logger = Logger.getLogger(FastqPairedEndToTagCountPlugin.class);
 // DEPENDING ON APPROACH, MAY NEED TO ADD ADDITIONAL DIRECOTORYnAME, OR
 // LOOP THROUGH THIS ONE TWICE
     String directoryName=null;
@@ -39,11 +39,11 @@ public class FastqPariedEndToTagCountPlugin extends AbstractPlugin {
     int minCount =1;
     String outputDir=null;
 
-    public FastqPariedEndToTagCountPlugin() {
+    public FastqPairedEndToTagCountPlugin() {
         super(null, false);
     }
 
-    public FastqPariedEndToTagCountPlugin(Frame parentFrame) {
+    public FastqPairedEndToTagCountPlugin(Frame parentFrame) {
         super(parentFrame, false);
     }
 
