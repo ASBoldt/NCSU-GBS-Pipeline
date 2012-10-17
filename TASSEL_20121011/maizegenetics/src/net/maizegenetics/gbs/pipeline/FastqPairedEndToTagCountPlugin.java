@@ -26,7 +26,7 @@ import org.apache.log4j.Logger;
  * that (1) have a second cut site, or (2) read into the common adapter.
  * 
  */
-public class FastqToTagCountPlugin extends AbstractPlugin {  
+public class FastqPariedEndToTagCountPlugin extends AbstractPlugin {  
     static long timePoint1;
     private ArgsEngine engine = null;
     private Logger logger = Logger.getLogger(FastqToTagCountPlugin.class);
