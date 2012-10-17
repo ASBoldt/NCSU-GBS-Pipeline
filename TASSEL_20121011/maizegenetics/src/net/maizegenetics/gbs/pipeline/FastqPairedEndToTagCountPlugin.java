@@ -29,7 +29,7 @@ import org.apache.log4j.Logger;
 public class FastqPariedEndToTagCountPlugin extends AbstractPlugin {  
     static long timePoint1;
     private ArgsEngine engine = null;
-    private Logger logger = Logger.getLogger(FastqToTagCountPlugin.class);
+    private Logger logger = Logger.getLogger(FastqPariedEndToTagCountPlugin.class);
 // DEPENDING ON APPROACH, MAY NEED TO ADD ADDITIONAL DIRECOTORYnAME, OR
 // LOOP THROUGH THIS ONE TWICE
     String directoryName=null;
@@ -39,11 +39,11 @@ public class FastqPariedEndToTagCountPlugin extends AbstractPlugin {
     int minCount =1;
     String outputDir=null;
 
-    public FastqToTagCountPlugin() {
+    public FastqPariedEndToTagCountPlugin() {
         super(null, false);
     }
 
-    public FastqToTagCountPlugin(Frame parentFrame) {
+    public FastqPariedEndToTagCountPlugin(Frame parentFrame) {
         super(parentFrame, false);
     }
 
@@ -250,21 +250,20 @@ public class FastqPariedEndToTagCountPlugin extends AbstractPlugin {
             System.out.println("Finished reading "+(laneNum+1)+" of "+fastqFiles.length+" sequence files.");
         }
     }
-//COMMENTING OUT FUNCTIONS THAT DON'T APPEAR TO BE IMMEDIATELY RELATED TO THE CURRENT OBJECTIVE
-//
-//    @Override
-//    public ImageIcon getIcon() {
-//       throw new UnsupportedOperationException("Not supported yet.");
-//    }
-//
-//    @Override
-//    public String getButtonName() {
-//        throw new UnsupportedOperationException("Not supported yet.");
-//    }
-//
-//    @Override
-//    public String getToolTipText() {
-//        throw new UnsupportedOperationException("Not supported yet.");
-//    }
+
+    @Override
+    public ImageIcon getIcon() {
+       throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public String getButtonName() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public String getToolTipText() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
     
 }
