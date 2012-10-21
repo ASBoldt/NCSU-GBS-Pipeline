@@ -93,19 +93,18 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             }
 //CREATE A NESTING LOOP THAT RUNS THROUGH THE TWO DIRECTORIES AND CHECKS
 // FOR THE TWO ENZYMES
-            if (engine.getBoolean("-i")) { directoryName = engine.getString("-i");
+            if (engine.getBoolean("-i")) { directoryName = engine.getString("-i");}
             else{ printUsage(); throw new IllegalArgumentException("Please specify the location of your FASTQ files."); }
 
             if(engine.getBoolean("-k")){ keyfile = engine.getString("-k");}
             else{ printUsage(); throw new IllegalArgumentException("Please specify a barcode key file.");}
 
-            if(engine.getBoolean("-e")){ 
-            	enzyme = engine.getString("-e"); 
-            	System.out.println("enzyme is:", enzyme);}
+            if(engine.getBoolean("-e")){ enzyme = engine.getString("-e"); }
             else{ 
                 System.out.println("No enzyme specified.  Using enzyme listed in key file.");
 //                printUsage(); throw new IllegalArgumentException("Please specify the enzyme used to create the GBS library.");
             }
+        
 //END THE NEST LOOP HERE
             if(engine.getBoolean("-s")){ maxGoodReads = Integer.parseInt(engine.getString("-s"));}
 
@@ -132,17 +131,15 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
         BufferedReader br;
 //COUNTER VARIABLE
         String[] countFileNames = null;
-//2 arrays for manually inputing multiple enzymes and keys for testing
-        String[] hcEnzyme={"PstI","MspI"};
-        String[] hcKeyFiles={"GBS.key","GBS2.key"};
 
-/**
-* 
-* THIS IS WHERE FILE INPUT NEEDS TO BE ADJUSTED, TRY TO
-* CONTINUE TO USE THE DIRECTORY CRAWLER AND PARSE THE OUTPUT TO READ1
-* AND READ2
-* 
-*/
+
+
+ 
+// THIS IS WHERE FILE INPUT NEEDS TO BE ADJUSTED, TRY TO
+// CONTINUE TO USE THE DIRECTORY CRAWLER AND PARSE THE OUTPUT TO READ1
+// AND READ2
+ 
+
         File inputDirectory = new File(fastqDirectory);
         File[] fastqFiles = DirectoryCrawler.listFiles("(?i).*\\.fq$|.*\\.fq\\.gz$|.*\\.fastq$|.*_fastq\\.txt$|.*_fastq\\.gz$|.*_fastq\\.txt\\.gz$|.*_sequence\\.txt$|.*_sequence\\.txt\\.gz$", inputDirectory.getAbsolutePath());
 //                                                      (?i) denotes case insensitive;                 \\. denotes escape . so it doesn't mean 'any char' & escape the backslash
@@ -174,17 +171,29 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             System.out.println("Reading FASTQ file: "+fastqFiles[laneNum]);
             String[] filenameField=fastqFiles[laneNum].getName().split("_");
             ParseBarcodeRead thePBR;  // this reads the key file and store the expected barcodes for this lane
+ 
             
 //handle keyfiles and enzymes
+//2 arrays for manually inputing multiple enzymes and keys for testing
+System.out.println("OLD Key file is:"+ keyFileS);            
+System.out.println("OLD enzyme is:"+ enzyme);
+String[] hcEnzyme={"PstI","MspI"};
+String[] hcKeyFiles={"GBS.key","GBS2.key"};
+
 if(filenameField[0].contains("1")){
 	keyFileS=hcKeyFiles[0];
-	enzyme=hcEnzyme[0];}
+	enzyme=hcEnzyme[0];
+	System.out.println("NEW Key file is:" + keyFileS);
+	System.out.println("NEW enzyme is:"+ enzyme);}
 else{
 	keyFileS=hcKeyFiles[1];
-	enzyme=hcEnzyme[1];}
+	enzyme=hcEnzyme[1];
+	System.out.println("NEW Key file is:"+ keyFileS);
+	System.out.println("NEW enzyme is:"+ enzyme);}
 //Debug           
-System.out.println("NEW Key file is:", keyFileS);}
-System.out.println("NEW enzyme is:", enzyme);}
+System.out.println("NEW Key file is:"+ keyFileS);
+System.out.println("NEW enzyme is:"+ enzyme);
+
             if(filenameField.length==3) {thePBR=new ParseBarcodeRead(keyFileS, enzyme, filenameField[0], filenameField[1]);}
             else if(filenameField.length==4) {thePBR=new ParseBarcodeRead(keyFileS, enzyme, filenameField[0], filenameField[2]);}  // B08AAABXX_s_1_sequence.txt.gz
             else if(filenameField.length==5) {thePBR=new ParseBarcodeRead(keyFileS, enzyme, filenameField[1], filenameField[3]);}
@@ -258,16 +267,16 @@ System.out.println("NEW enzyme is:", enzyme);}
                 theTC.writeTagCountFile(outputDir+File.separator+countFileNames[laneNum], FilePacking.Bit, minCount);
                 System.out.println("Process took " + (System.currentTimeMillis() - timePoint1) + " milliseconds.");
                 br.close();
-            }
+            
         } catch(Exception e) {
             System.out.println("Catch testBasicPipeline c="+goodBarcodedReads+" e="+e);
             e.printStackTrace();
             System.out.println("Finished reading "+(laneNum+1)+" of "+fastqFiles.length+" sequence files.");
         }
     }
-
+    }
     @Override
-    public ImageIcon getIcon() {
+    public ImageIcon getIcon(){
        throw new UnsupportedOperationException("Not supported yet.");
     }
 
