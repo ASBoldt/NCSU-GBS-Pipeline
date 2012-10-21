@@ -177,13 +177,14 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             
 //handle keyfiles and enzymes
 if(filenameField[0].contains("1")){
-	keyFiles=hcKeyFiles[0];
+	keyFileS=hcKeyFiles[0];
 	enzyme=hcEnzyme[0];}
 else{
-	keyFiles=hcKeyFiles[1];
+	keyFileS=hcKeyFiles[1];
 	enzyme=hcEnzyme[1];}
-            
-            
+//Debug           
+System.out.println("NEW Key file is:", keyFileS);}
+System.out.println("NEW enzyme is:", enzyme);}
             if(filenameField.length==3) {thePBR=new ParseBarcodeRead(keyFileS, enzyme, filenameField[0], filenameField[1]);}
             else if(filenameField.length==4) {thePBR=new ParseBarcodeRead(keyFileS, enzyme, filenameField[0], filenameField[2]);}  // B08AAABXX_s_1_sequence.txt.gz
             else if(filenameField.length==5) {thePBR=new ParseBarcodeRead(keyFileS, enzyme, filenameField[1], filenameField[3]);}
