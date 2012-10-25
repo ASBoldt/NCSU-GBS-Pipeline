@@ -177,7 +177,8 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 //2 arrays for manually inputing multiple enzymes and keys for testing
 System.out.println("OLD Key file is:"+ keyFileS);            
 System.out.println("OLD enzyme is:"+ enzyme);
-String[] hcEnzyme={"PstI","MspI"};
+//String[] hcEnzyme={"PstI","MspI"};
+String[] hcEnzyme=("PstI-MspI","MspI-PstI");
 String[] hcKeyFiles={"GBS.key","GBS2.key"};
 
 if(filenameField[0].contains("1")){
