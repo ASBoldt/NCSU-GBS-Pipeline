@@ -91,6 +91,12 @@ public class ParseBarcodeRead {
             // corrected, change from  CCGAGATC to CCGCTCAGG, as Y adapter was used for MspI  -QS
             likelyReadEnd = new String[]{"CCGG","CTGCAG","CCGCTCAGG"}; // look for MspI site, PstI site, or common adapter for MspI
             readEndCutSiteRemnantLength = 3;
+        //NCSU added msp-pst, NEED TO VERIFY COMMON ADAPTER FOR PstI    
+        }else if(enzyme.matches("(?i)msp[i1]-pst[i1]")){
+            theEnzyme = "MspI-PstI";
+            initialCutSiteRemnant=new String[]{"CGG"};
+            likelyReadEnd = new String[]{"TGCAG","CCGG","CTGCAAGAT"}; // look for PstI site, MspI site, or common adapter for PstI
+            readEndCutSiteRemnantLength = 3;
         }else if(enzyme.matches("(?i)pst[i1]-taq[i1]")){
             theEnzyme = "PstI-TaqI";
             // corrected, change from  TCGAGATC to TCGCTCAGG, as Y adapter was used for TaqI  -QS
