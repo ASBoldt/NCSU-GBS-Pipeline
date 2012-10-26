@@ -95,7 +95,7 @@ public class ParseBarcodeRead {
         }else if(enzyme.matches("(?i)msp[i1]-pst[i1]")){
             theEnzyme = "MspI-PstI";
             initialCutSiteRemnant=new String[]{"CGG"};
-            likelyReadEnd = new String[]{"TGCAG","CCGG","CTGCAAGAT"}; // look for PstI site, MspI site, or common adapter for PstI
+            likelyReadEnd = new String[]{"CTGCAG","CCGG","CTGCAAGAT"}; // look for PstI site, MspI site, or common adapter for PstI
             readEndCutSiteRemnantLength = 3;
         }else if(enzyme.matches("(?i)pst[i1]-taq[i1]")){
             theEnzyme = "PstI-TaqI";
