@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+
 import net.maizegenetics.util.MultiMemberGZIPInputStream;
 import javax.swing.ImageIcon;
 import net.maizegenetics.gbs.homology.ParseBarcodeRead;
@@ -117,6 +119,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 //        }
     }
 
+    
     /**
      * Derives a tagCount list for each fastq file in the fastqDirectory.
      *
@@ -132,7 +135,25 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 //COUNTER VARIABLE
         String[] countFileNames = null;
 
-
+        
+        /* Grab ':' delimited key files */
+        String[] tempFileList = keyFileS.split(":");
+        String[] keyFileList = new String[2];
+        
+        if (tempFileList.length == 0){
+        	System.out.println("No key file given");
+        	keyFileList[0] = "GBS.key"; // = NULL ?
+        	keyFileList[1] = "GBS.key"; // = NULL ?
+        	
+        } else if (tempFileList.length == 1){
+        	System.out.println("Only one key file given");
+        	keyFileList[0] = tempFileList[0];
+        	keyFileList[1] = tempFileList[0];
+        	
+        } else {
+        	keyFileList[0] = tempFileList[0];
+        	keyFileList[1] = tempFileList[1];
+        }
 
  
 // THIS IS WHERE FILE INPUT NEEDS TO BE ADJUSTED, TRY TO
@@ -141,12 +162,34 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
  
 
         File inputDirectory = new File(fastqDirectory);
-        File[] fastqFiles = DirectoryCrawler.listFiles("(?i).*\\.fq$|.*\\.fq\\.gz$|.*\\.fastq$|.*_fastq\\.txt$|.*_fastq\\.gz$|.*_fastq\\.txt\\.gz$|.*_sequence\\.txt$|.*_sequence\\.txt\\.gz$", inputDirectory.getAbsolutePath());
+        File[] rawFastqFiles = DirectoryCrawler.listFiles("(?i).*\\.fq$|.*\\.fq\\.gz$|.*\\.fastq$|.*_fastq\\.txt$|.*_fastq\\.gz$|.*_fastq\\.txt\\.gz$|.*_sequence\\.txt$|.*_sequence\\.txt\\.gz$", inputDirectory.getAbsolutePath());
 //                                                      (?i) denotes case insensitive;                 \\. denotes escape . so it doesn't mean 'any char' & escape the backslash
-        if(fastqFiles.length==0 || fastqFiles == null){
-            System.out.println("Couldn't find any files that end with \".fq\", \".fq.gz\", \".fastq\", \"_fastq.txt\", \"_fastq.gz\", \"_fastq.txt.gz\", \"_sequence.txt\", or \"_sequence.txt.gz\" in the supplied directory.");
-        } else {
+        
+        
+        /* ----- Get only r1smp files ----- */
+        ArrayList<File> fastqFilesArray = new ArrayList<File>();
+        if (rawFastqFiles.length == 0){
+        	System.out.println("Couldn't find any files that end with \".fq\", \".fq.gz\", \".fastq\", \"_fastq.txt\", \"_fastq.gz\", \"_fastq.txt.gz\", \"_sequence.txt\", or \"_sequence.txt.gz\" in the supplied directory.");
+        	return;
+        }
+        
+        // Get array list of files with r1smp in them
+        for (int i = 0; i < rawFastqFiles.length; i++){
+        	String fileName = rawFastqFiles[i].getName();
+        	
+        	if (fileName.indexOf("r1smp") > -1){
+        		fastqFilesArray.add(rawFastqFiles[i]);
+        	}
+        }
+        // Cast to file array as following code relies on it
+        File[] fastqFiles = fastqFilesArray.toArray(new File[fastqFilesArray.size()]);
+        
+        
+        
+        
+        if(fastqFiles.length !=0 ){
             System.out.println("Using the following FASTQ files:");
+            
             
 //COUNTS HOW MANY FILES THERE ARE IN THE INPUT            
             countFileNames = new String[fastqFiles.length];
@@ -157,8 +200,21 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
                 System.out.println(fastqFiles[i].getAbsolutePath());
             }
         }
+        
         int allReads=0, goodBarcodedReads=0;
+        
+        /* Loop through all of the fastqFiles */
         for(int laneNum=0; laneNum<fastqFiles.length; laneNum++) {
+        	
+        	/* Get second read file by name */
+        	File read1 = fastqFiles[laneNum];
+        	String read1Name = read1.getAbsolutePath();
+        	int index = read1Name.indexOf("r1smp")+1;
+        	
+        	String read2Name = read1Name.substring(0, index) + "2" + read1Name.substring(index+1);
+        	File read2 = new File(read2Name);
+        	
+        	/* Open output file, don't do work on input if corresponding output exists */
             File outputFile = new File(outputDir+File.separator+countFileNames[laneNum]);
             if(outputFile.isFile()){
                 System.out.println(
@@ -168,7 +224,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             }
 
             TagCountMutable theTC=null;
-            System.out.println("Reading FASTQ file: "+fastqFiles[laneNum]);
+            System.out.println("Reading FASTQ files: "+fastqFiles[laneNum]+", "+read2Name);
             String[] filenameField=fastqFiles[laneNum].getName().split("_");
             ParseBarcodeRead thePBR;  // this reads the key file and store the expected barcodes for this lane
  
