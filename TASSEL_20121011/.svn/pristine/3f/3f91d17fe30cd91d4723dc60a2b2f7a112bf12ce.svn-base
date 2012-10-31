@@ -1,2 +1,0 @@
-main.class=net.maizegenetics.gbs.pipeline.QseqToHapmapProduction
-run.jvmargs=-Xms500m -Xmx1200m
