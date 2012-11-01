@@ -21,7 +21,6 @@ import net.maizegenetics.util.DirectoryCrawler;
 import org.apache.log4j.Logger;
 
 /* TODO:
- * - Merge nfastq back to master
  * - Pass some of countTags() initial code to other methods
  *   - Grabbing/parsing key files
  *   - Directory crawling for the fastq files
@@ -152,8 +151,8 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
         
         if (tempFileList.length == 0){
         	System.out.println("No key file given");
-        	keyFileList[0] = "GBS.key"; // = NULL ?
-        	keyFileList[1] = "GBS.key"; // = NULL ?
+        	keyFileList[0] = null;
+        	keyFileList[1] = null;
         	
         } else if (tempFileList.length == 1){
         	System.out.println("Only one key file given");
