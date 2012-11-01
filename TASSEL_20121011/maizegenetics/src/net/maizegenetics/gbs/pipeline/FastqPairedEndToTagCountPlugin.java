@@ -20,6 +20,16 @@ import net.maizegenetics.plugindef.DataSet;
 import net.maizegenetics.util.DirectoryCrawler;
 import org.apache.log4j.Logger;
 
+/* TODO:
+ * - Merge nfastq back to master
+ * - Pass some of countTags() initial code to other methods
+ *   - Grabbing/parsing key files
+ *   - Directory crawling for the fastq files
+ * - make keyFileList a private variable
+ * - Uncomment null case
+ * - Parse r1xyz
+ */
+
 /** 
  * Derives a tagCount list for each fastq file in the input directory.
  *
