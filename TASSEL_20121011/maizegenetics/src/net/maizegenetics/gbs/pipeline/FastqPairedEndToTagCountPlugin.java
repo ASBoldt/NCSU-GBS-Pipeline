@@ -7,6 +7,8 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import net.maizegenetics.util.MultiMemberGZIPInputStream;
 import javax.swing.ImageIcon;
@@ -22,7 +24,6 @@ import org.apache.log4j.Logger;
 
 /* TODO:
  * - Pass some of countTags() initial code to other methods
- *   - Grabbing/parsing key files
  *   - Directory crawling for the fastq files
  * - Parse r1xyz
  */
@@ -161,6 +162,9 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 		//                                                      (?i) denotes case insensitive;                 \\. denotes escape . so it doesn't mean 'any char' & escape the backslash
 
 
+		
+		File[][] dummy = getAlignedReadFileList(rawFastqFiles);
+		
 		/* ----- Get only r1smp files ----- */
 		ArrayList<File> fastqFilesArray = new ArrayList<File>();
 		if (rawFastqFiles.length == 0){
@@ -376,5 +380,42 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 	 */
 	public static String[] getKeyFileList(){
 		return keyFileList;
+	}
+	
+	
+	public static File[][] getAlignedReadFileList(File[] fileList){
+		ArrayList<File[]> fastqFiles = new ArrayList<File[]>();
+		
+		/* Only care about matching files with substrings rNxxx */
+		Pattern pat = Pattern.compile("r1[a-zA-Z]{3}");
+		
+		for (int i = 0; i < fileList.length; i++){
+			/* Get the current file name */
+			String fileName = fileList[i].getAbsolutePath();
+			
+			/* Check file name for desired pattern (read 1s) */
+			Matcher match = pat.matcher(fileName);
+			if (match.find()){
+				/* Verified read 1 file, get index of read # */
+				int iNum = match.start()+1;
+				
+				/* Generate read 2's file name */
+				String readTwoName = fileName.substring(0, iNum) + "2"
+						+ fileName.substring(iNum+1);
+				
+				/* Create file object for second read file */
+				File readTwoFile = new File(readTwoName);
+				
+				/* Pack read 1 and 2 files together */
+				File[] tuple = new File[2];
+				tuple[0] = fileList[i];
+				tuple[1] = readTwoFile;
+				
+				/* Add to list */
+				fastqFiles.add(tuple);
+			}
+		}
+		
+		return fastqFiles.toArray(new File[fastqFiles.size()][]);
 	}
 }
