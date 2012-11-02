@@ -25,7 +25,6 @@ import org.apache.log4j.Logger;
  *   - Grabbing/parsing key files
  *   - Directory crawling for the fastq files
  * - make keyFileList a private variable
- * - Uncomment null case
  * - Parse r1xyz
  */
 
@@ -49,6 +48,10 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
     int maxGoodReads = 200000000;
     int minCount =1;
     String outputDir=null;
+    
+    /* List of key files to use in counting tags method*/
+    private static String[] keyFileList;
+    
 
     public FastqPairedEndToTagCountPlugin() {
         super(null, false);
@@ -356,4 +359,39 @@ System.out.println("NEW enzyme is:"+ enzyme);
         throw new UnsupportedOperationException("Not supported yet.");
     }
     
+    
+    /**
+     * Parses concatenated string of key file paths and stores as private variable
+     * keyFileList. Succeeds if and only if two file names are extracted
+     * @param keyFileCatString Concatenated string of key file names
+     * @param delimiter Delimiter of individual file names
+     * @throws IllegalArgumentException If args don't split into two strings
+     */
+    public static void parseKeyFileString(String keyFileCatString, String delimiter)
+    		 throws IllegalArgumentException {
+    	/* Break up list */
+    	String[] tempList = keyFileCatString.split(delimiter);
+    	
+    	if (tempList.length == 2){
+    		/* Assign to keyFileList */
+    		keyFileList = tempList;
+    		
+    	} else {
+    		/* Failure to properly parse */
+    		keyFileList = null;
+    		
+    		String msg = "Failed to parse key files '" +keyFileCatString+
+    				"' using delimiter '" +delimiter+ "'";
+    		throw new IllegalArgumentException(msg);
+    	}
+    }
+    
+    
+    /**
+     * Accessor for keyFileList
+     * @return keyFileList
+     */
+    public static String[] getKeyFileList(){
+    	return keyFileList;
+    }
 }
