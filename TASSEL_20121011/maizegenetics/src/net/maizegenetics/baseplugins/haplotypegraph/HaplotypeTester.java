@@ -14,7 +14,7 @@ public class HaplotypeTester
 {
     public static void main(String[] args) throws Exception
     {
-        UIManager.setLookAndFeel(new com.sun.java.swing.plaf.windows.WindowsLookAndFeel());
+        //UIManager.setLookAndFeel(new com.sun.java.swing.plaf.windows.WindowsLookAndFeel());
         HaplotypeFrame hf = new HaplotypeFrame( new File("C:\\IdeaProjects\\Tassel\\haplotyeTest.txt") );
         hf.run();
     }

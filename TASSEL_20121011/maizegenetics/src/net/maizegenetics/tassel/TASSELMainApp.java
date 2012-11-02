@@ -45,7 +45,7 @@ public class TASSELMainApp {
         PropertyConfigurator.configure(props);
 
         try {
-            UIManager.setLookAndFeel(new com.sun.java.swing.plaf.windows.WindowsLookAndFeel());
+            //UIManager.setLookAndFeel(new com.sun.java.swing.plaf.windows.WindowsLookAndFeel());
         } catch (Exception e) {
         }
 
