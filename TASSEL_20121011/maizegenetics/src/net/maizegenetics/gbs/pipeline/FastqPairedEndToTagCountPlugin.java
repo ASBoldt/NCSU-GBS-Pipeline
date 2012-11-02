@@ -22,12 +22,6 @@ import net.maizegenetics.plugindef.DataSet;
 import net.maizegenetics.util.DirectoryCrawler;
 import org.apache.log4j.Logger;
 
-/* TODO:
- * - Pass some of countTags() initial code to other methods
- *   - Directory crawling for the fastq files
- * - Parse r1xyz
- */
-
 /** 
  * Derives a tagCount list for each fastq file in the input directory.
  *
@@ -161,29 +155,8 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 		File[] rawFastqFiles = DirectoryCrawler.listFiles("(?i).*\\.fq$|.*\\.fq\\.gz$|.*\\.fastq$|.*_fastq\\.txt$|.*_fastq\\.gz$|.*_fastq\\.txt\\.gz$|.*_sequence\\.txt$|.*_sequence\\.txt\\.gz$", inputDirectory.getAbsolutePath());
 		//                                                      (?i) denotes case insensitive;                 \\. denotes escape . so it doesn't mean 'any char' & escape the backslash
 
-
-		
-		File[][] dummy = getAlignedReadFileList(rawFastqFiles);
-		
-		/* ----- Get only r1smp files ----- */
-		ArrayList<File> fastqFilesArray = new ArrayList<File>();
-		if (rawFastqFiles.length == 0){
-			System.out.println("Couldn't find any files that end with \".fq\", \".fq.gz\", \".fastq\", \"_fastq.txt\", \"_fastq.gz\", \"_fastq.txt.gz\", \"_sequence.txt\", or \"_sequence.txt.gz\" in the supplied directory.");
-			return;
-		}
-
-		// Get array list of files with r1smp in them
-		for (int i = 0; i < rawFastqFiles.length; i++){
-			String fileName = rawFastqFiles[i].getName();
-
-			if (fileName.indexOf("r1smp") > -1){
-				fastqFilesArray.add(rawFastqFiles[i]);
-			}
-		}
-		// Cast to file array as following code relies on it
-		File[] fastqFiles = fastqFilesArray.toArray(new File[fastqFilesArray.size()]);
-
-
+		/* Grab list of read 1-2 files */
+		File[][] fastqFiles = getAlignedReadFileList(rawFastqFiles);
 
 
 		if(fastqFiles.length !=0 ){
@@ -193,10 +166,10 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 			//COUNTS HOW MANY FILES THERE ARE IN THE INPUT            
 			countFileNames = new String[fastqFiles.length];
 			for (int i=0; i<fastqFiles.length; i++) {
-				countFileNames[i] = fastqFiles[i].getName().replaceAll
+				countFileNames[i] = fastqFiles[i][0].getName().replaceAll
 						("(?i)\\.fq$|\\.fq\\.gz$|\\.fastq$|_fastq\\.txt$|_fastq\\.gz$|_fastq\\.txt\\.gz$|_sequence\\.txt$|_sequence\\.txt\\.gz$", ".cnt");
 				//                        \\. escape . so it doesn't mean 'any char' & escape the backslash                
-				System.out.println(fastqFiles[i].getAbsolutePath());
+				System.out.println(fastqFiles[i][0].getAbsolutePath());
 			}
 		}
 
@@ -206,7 +179,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 		for(int laneNum=0; laneNum<fastqFiles.length; laneNum++) {
 
 			/* Get second read file by name */
-			File read1 = fastqFiles[laneNum];
+			File read1 = fastqFiles[laneNum][0];
 			String read1Name = read1.getAbsolutePath();
 			int index = read1Name.indexOf("r1smp")+1;
 
@@ -224,7 +197,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 
 			TagCountMutable theTC=null;
 			System.out.println("Reading FASTQ files: "+fastqFiles[laneNum]+", "+read2Name);
-			String[] filenameField=fastqFiles[laneNum].getName().split("_");
+			String[] filenameField=fastqFiles[laneNum][0].getName().split("_");
 			ParseBarcodeRead thePBR;  // this reads the key file and store the expected barcodes for this lane
 
 
@@ -271,10 +244,10 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 
 			try{
 				//Read in qseq file as a gzipped text stream if its name ends in ".gz", otherwise read as text
-				if(fastqFiles[laneNum].getName().endsWith(".gz")){
-					br = new BufferedReader(new InputStreamReader(new MultiMemberGZIPInputStream(new FileInputStream(fastqFiles[laneNum]))));
+				if(fastqFiles[laneNum][0].getName().endsWith(".gz")){
+					br = new BufferedReader(new InputStreamReader(new MultiMemberGZIPInputStream(new FileInputStream(fastqFiles[laneNum][0]))));
 				}else{
-					br=new BufferedReader(new FileReader(fastqFiles[laneNum]),65536);
+					br=new BufferedReader(new FileReader(fastqFiles[laneNum][0]),65536);
 				}
 				String sequence="", qualityScore="";
 				String temp;
@@ -383,6 +356,11 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 	}
 	
 	
+	/**
+	 * Takes a list of files and creates a new subset list of read pair files
+	 * @param fileList Set of files of dimension nx2
+	 * @return List of (read1 file, read2 file) pairs.
+	 */
 	public static File[][] getAlignedReadFileList(File[] fileList){
 		ArrayList<File[]> fastqFiles = new ArrayList<File[]>();
 		
