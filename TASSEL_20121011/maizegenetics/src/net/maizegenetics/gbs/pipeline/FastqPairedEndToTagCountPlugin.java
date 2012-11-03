@@ -198,9 +198,14 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
         }
         
         int allReads=0, goodBarcodedReads=0;
+        int numFastqFiles = fastqFiles.length;  //number of files
+System.out.println("numFastqFiles IS: "+fileNum); //TESTIG & DEBUG         
+        //this probably needs to be a separate private method
+        int indexStartOfRead2 = numFastqFiles+1;
+System.out.println("indexStartOfRead2 IS: "+fileNum); //TESTING & DEBUG         
         
         /* Loop through all of the fastqFiles */
-        for(int fileNum=0; fileNum<fastqFiles.length; fileNum++) {
+        for(int fileNum=0; fileNum<numFastqFiles; fileNum++) {
         	
         	/* Get second read file by name */
 //        	File read1 = fastqFiles[fileNum];
@@ -219,12 +224,10 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
                 continue;
             }
             
-            
-
             TagCountMutable theTC=null;
 //N.K code            System.out.println("Reading FASTQ files: "+fastqFiles[fileNum]+", "+read2Name);
             System.out.println("Reading FASTQ file: "+fastqFiles[fileNum]);
-          System.out.println("fileNum IS: "+fileNum); //DEBUG 
+ System.out.println("fileNum IS: "+fileNum); //DEBUG 
             String[] filenameField=fastqFiles[fileNum].getName().split("_");
             ParseBarcodeRead thePBR;  // this reads the key file and store the expected barcodes for this lane
  
