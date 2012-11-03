@@ -162,12 +162,13 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
  
 
         File inputDirectory = new File(fastqDirectory);
-        File[] rawFastqFiles = DirectoryCrawler.listFiles("(?i).*\\.fq$|.*\\.fq\\.gz$|.*\\.fastq$|.*_fastq\\.txt$|.*_fastq\\.gz$|.*_fastq\\.txt\\.gz$|.*_sequence\\.txt$|.*_sequence\\.txt\\.gz$", inputDirectory.getAbsolutePath());
+        File[] fastqFiles = DirectoryCrawler.listFiles("(?i).*\\.fq$|.*\\.fq\\.gz$|.*\\.fastq$|.*_fastq\\.txt$|.*_fastq\\.gz$|.*_fastq\\.txt\\.gz$|.*_sequence\\.txt$|.*_sequence\\.txt\\.gz$", inputDirectory.getAbsolutePath());
+//        File[] rawFastqFiles = DirectoryCrawler.listFiles("(?i).*\\.fq$|.*\\.fq\\.gz$|.*\\.fastq$|.*_fastq\\.txt$|.*_fastq\\.gz$|.*_fastq\\.txt\\.gz$|.*_sequence\\.txt$|.*_sequence\\.txt\\.gz$", inputDirectory.getAbsolutePath());
 //                                                      (?i) denotes case insensitive;                 \\. denotes escape . so it doesn't mean 'any char' & escape the backslash
         
         
         /* ----- Get only r1smp files ----- */
-        ArrayList<File> fastqFilesArray = new ArrayList<File>();
+/*        ArrayList<File> fastqFilesArray = new ArrayList<File>();
         if (rawFastqFiles.length == 0){
         	System.out.println("Couldn't find any files that end with \".fq\", \".fq.gz\", \".fastq\", \"_fastq.txt\", \"_fastq.gz\", \"_fastq.txt.gz\", \"_sequence.txt\", or \"_sequence.txt.gz\" in the supplied directory.");
         	return;
@@ -183,7 +184,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
         }
         // Cast to file array as following code relies on it
         File[] fastqFiles = fastqFilesArray.toArray(new File[fastqFilesArray.size()]);
-        
+*/        
         
         
         
@@ -247,9 +248,12 @@ else{
 	enzyme=hcEnzyme[1];
 	System.out.println("NEW Key file is:"+ keyFileS);
 	System.out.println("NEW enzyme is:"+ enzyme);}
+
 //Debug           
-System.out.println("NEW Key file is:"+ keyFileS);
+System.out.println("New key file is:"+ keyFileS);
 System.out.println("NEW enzyme is:"+ enzyme);
+
+
 
             if(filenameField.length==3) {thePBR=new ParseBarcodeRead(keyFileS, enzyme, filenameField[0], filenameField[1]);}
             else if(filenameField.length==4) {thePBR=new ParseBarcodeRead(keyFileS, enzyme, filenameField[0], filenameField[2]);}  // B08AAABXX_s_1_sequence.txt.gz
