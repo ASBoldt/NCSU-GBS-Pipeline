@@ -199,10 +199,10 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
         
         int allReads=0, goodBarcodedReads=0;
         int numFastqFiles = fastqFiles.length;  //number of files
-System.out.println("numFastqFiles IS: "+fileNum); //TESTIG & DEBUG         
+System.out.println("numFastqFiles IS: "+numFastqFiles); //TESTING & DEBUG         
         //this probably needs to be a separate private method
         int indexStartOfRead2 = numFastqFiles+1;
-System.out.println("indexStartOfRead2 IS: "+fileNum); //TESTING & DEBUG         
+System.out.println("indexStartOfRead2 IS: "+indexStartOfRead2); //TESTING & DEBUG         
         
         /* Loop through all of the fastqFiles */
         for(int fileNum=0; fileNum<numFastqFiles; fileNum++) {
