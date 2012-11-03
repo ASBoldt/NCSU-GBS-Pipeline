@@ -200,10 +200,10 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
         int allReads=0, goodBarcodedReads=0;
         
         /* Loop through all of the fastqFiles */
-        for(int laneNum=0; laneNum<fastqFiles.length; laneNum++) {
+        for(int fileNum=0; fileNum<fastqFiles.length; fileNum++) {
         	
         	/* Get second read file by name */
-//        	File read1 = fastqFiles[laneNum];
+//        	File read1 = fastqFiles[fileNum];
  //       	String read1Name = read1.getAbsolutePath();
 //        	int index = read1Name.indexOf("r1smp")+1;
         	
@@ -211,21 +211,21 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 //        	File read2 = new File(read2Name);
         	
         	/* Open output file, don't do work on input if corresponding output exists */
-            File outputFile = new File(outputDir+File.separator+countFileNames[laneNum]);
+            File outputFile = new File(outputDir+File.separator+countFileNames[fileNum]);
             if(outputFile.isFile()){
                 System.out.println(
-                        "An output file "+countFileNames[laneNum]+"\n"+ 
-                        " already exists in the output directory for file "+fastqFiles[laneNum]+".  Skipping.");
+                        "An output file "+countFileNames[fileNum]+"\n"+ 
+                        " already exists in the output directory for file "+fastqFiles[fileNum]+".  Skipping.");
                 continue;
             }
             
             
 
             TagCountMutable theTC=null;
-//N.K code            System.out.println("Reading FASTQ files: "+fastqFiles[laneNum]+", "+read2Name);
-            System.out.println("Reading FASTQ file: "+fastqFiles[laneNum]);
- //DEBUG           System.out.println("LANENUM IS: "+laneNum);
-            String[] filenameField=fastqFiles[laneNum].getName().split("_");
+//N.K code            System.out.println("Reading FASTQ files: "+fastqFiles[fileNum]+", "+read2Name);
+            System.out.println("Reading FASTQ file: "+fastqFiles[fileNum]);
+          System.out.println("fileNum IS: "+fileNum); //DEBUG 
+            String[] filenameField=fastqFiles[fileNum].getName().split("_");
             ParseBarcodeRead thePBR;  // this reads the key file and store the expected barcodes for this lane
  
             
@@ -261,7 +261,7 @@ System.out.println("NEW enzyme is:"+ enzyme);
                 System.out.println("Error in parsing file name:");
                 System.out.println("   The filename does not contain either 3, 4, or 5 underscore-delimited values.");
                 System.out.println("   Expect: flowcell_lane_fastq.txt.gz OR flowcell_s_lane_fastq.txt.gz OR code_flowcell_s_lane_fastq.txt.gz");
-                System.out.println("   Filename: "+fastqFiles[laneNum]);
+                System.out.println("   Filename: "+fastqFiles[fileNum]);
                 continue;
             }
             System.out.println("Total barcodes found in lane:"+thePBR.getBarCodeCount());
@@ -275,10 +275,10 @@ System.out.println("NEW enzyme is:"+ enzyme);
 
             try{
                 //Read in qseq file as a gzipped text stream if its name ends in ".gz", otherwise read as text
-                if(fastqFiles[laneNum].getName().endsWith(".gz")){
-                    br = new BufferedReader(new InputStreamReader(new MultiMemberGZIPInputStream(new FileInputStream(fastqFiles[laneNum]))));
+                if(fastqFiles[fileNum].getName().endsWith(".gz")){
+                    br = new BufferedReader(new InputStreamReader(new MultiMemberGZIPInputStream(new FileInputStream(fastqFiles[fileNum]))));
                 }else{
-                    br=new BufferedReader(new FileReader(fastqFiles[laneNum]),65536);
+                    br=new BufferedReader(new FileReader(fastqFiles[fileNum]),65536);
                 }
                 String sequence="", qualityScore="";
                 String temp;
@@ -324,14 +324,14 @@ System.out.println("NEW enzyme is:"+ enzyme);
                 System.out.println("Timing process (sorting, collapsing, and writing TagCount to file).");
                 timePoint1 = System.currentTimeMillis();
                 theTC.collapseCounts();
-                theTC.writeTagCountFile(outputDir+File.separator+countFileNames[laneNum], FilePacking.Bit, minCount);
+                theTC.writeTagCountFile(outputDir+File.separator+countFileNames[fileNum], FilePacking.Bit, minCount);
                 System.out.println("Process took " + (System.currentTimeMillis() - timePoint1) + " milliseconds.");
                 br.close();
             
         } catch(Exception e) {
             System.out.println("Catch testBasicPipeline c="+goodBarcodedReads+" e="+e);
             e.printStackTrace();
-            System.out.println("Finished reading "+(laneNum+1)+" of "+fastqFiles.length+" sequence files.");
+            System.out.println("Finished reading "+(fileNum+1)+" of "+fastqFiles.length+" sequence files.");
         }
     }
     }
