@@ -200,12 +200,25 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
         int allReads=0, goodBarcodedReads=0;
         int numFastqFiles = fastqFiles.length;  //number of files
 System.out.println("numFastqFiles IS: "+numFastqFiles); //TESTING & DEBUG         
-        //this probably needs to be a separate private method
-        int indexStartOfRead2 = numFastqFiles+1;
-System.out.println("indexStartOfRead2 IS: "+indexStartOfRead2); //TESTING & DEBUG         
+        int indexStartOfRead2 = numFastqFiles/2;
+      //this chunk probably needs to be a separate private method
+        if (indexStartOfRead2 % 2 !=0){
+        System.out.println("There are an odd number of files so there won't be correct pairing"); 	
+        }
         
+System.out.println("indexStartOfRead2 IS: "+indexStartOfRead2); //TESTING & DEBUG         
+		
+		/* sets mutildimensional array for 
+		 * [x][][] 2 bays for forward and reverse reads
+		 * [][x][] number of files expected for each directional read
+		 * [][][y] will hold the parsed elements of the file name
+		 */
+		String [][][] fileReadInfo=new String[2][indexStartOfRead2][5]; 
+
         /* Loop through all of the fastqFiles */
-        for(int fileNum=0; fileNum<numFastqFiles; fileNum++) {
+        for(int fileNum=0; fileNum<indexStartOfRead2; fileNum++) { // cap is set to indexStartOfRead2
+        	//because files should be handled as pairs, so the counter doesn't need to iterate through
+        	//all of the counted files
         	
         	/* Get second read file by name */
 //        	File read1 = fastqFiles[fileNum];
@@ -228,7 +241,17 @@ System.out.println("indexStartOfRead2 IS: "+indexStartOfRead2); //TESTING & DEBU
 //N.K code            System.out.println("Reading FASTQ files: "+fastqFiles[fileNum]+", "+read2Name);
             System.out.println("Reading FASTQ file: "+fastqFiles[fileNum]);
  System.out.println("fileNum IS: "+fileNum); //DEBUG 
-            String[] filenameField=fastqFiles[fileNum].getName().split("_");
+ 			
+ 			String[] filenameField=fastqFiles[fileNum].getName().split("_");
+System.out.println("fileField LEN IS: "+filenameField.length); //DEBUG 
+
+			System.arraycopy(filenameField, 0, fileReadInfo[0][fileNum], 0, filenameField.length);
+		//DEBUG	
+for(int check=0;check<5;check++){
+	System.out.println("fileReadInfo IS: "+fileReadInfo[0][fileNum][check]); //DEBUG 
+}
+ 			
+ 			
             ParseBarcodeRead thePBR;  // this reads the key file and store the expected barcodes for this lane
  
             
@@ -252,15 +275,15 @@ else{
 	System.out.println("NEW enzyme is:"+ enzyme);}
 
 //Debug           
-System.out.println("New key file is:"+ keyFileS);
-System.out.println("NEW enzyme is:"+ enzyme);
+//System.out.println("New key file is:"+ keyFileS);
+//System.out.println("NEW enzyme is:"+ enzyme);
 
 
 
-            if(filenameField.length==3) {thePBR=new ParseBarcodeRead(keyFileS, enzyme, filenameField[0], filenameField[1]);}
-            else if(filenameField.length==4) {thePBR=new ParseBarcodeRead(keyFileS, enzyme, filenameField[0], filenameField[2]);}  // B08AAABXX_s_1_sequence.txt.gz
-            else if(filenameField.length==5) {thePBR=new ParseBarcodeRead(keyFileS, enzyme, filenameField[1], filenameField[3]);}
-            else {
+				if(filenameField.length==3) {thePBR=new ParseBarcodeRead(keyFileS, enzyme, filenameField[0], filenameField[1]);}
+				else if(filenameField.length==4) {thePBR=new ParseBarcodeRead(keyFileS, enzyme, filenameField[0], filenameField[2]);}  // B08AAABXX_s_1_sequence.txt.gz
+				else if(filenameField.length==5) {thePBR=new ParseBarcodeRead(keyFileS, enzyme, filenameField[1], filenameField[3]);}
+				else {
                 System.out.println("Error in parsing file name:");
                 System.out.println("   The filename does not contain either 3, 4, or 5 underscore-delimited values.");
                 System.out.println("   Expect: flowcell_lane_fastq.txt.gz OR flowcell_s_lane_fastq.txt.gz OR code_flowcell_s_lane_fastq.txt.gz");
