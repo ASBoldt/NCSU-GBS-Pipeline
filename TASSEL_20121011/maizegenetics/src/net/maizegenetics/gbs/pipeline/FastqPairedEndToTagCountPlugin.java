@@ -251,31 +251,39 @@ System.out.println("fileField LEN IS: "+filenameField.length); //DEBUG
 		
 		String[][][] filenameField= new String[2][5][];
 		int fileNum=0;
-for(int read=0; read<2; read++) {
-	int loopController; //controls loop
-	if(read==0)
-		loopController=indexStartOfRead2;
-	else
-		loopController=numFastqFiles;
-	
-	for(int fileController=0;fileController<indexStartOfRead2;fileController++){
-		for(fileNum=0; fileNum<loopController; fileNum++) {
-		File outputFile = new File(outputDir+File.separator+countFileNames[fileNum]);//Assumes no outputs exist, need to add in checking code
-		System.out.println("Reading FASTQ file: "+fastqFiles[fileNum]);//print
-		System.out.println("fileNum IS: "+fileNum); //DEBUG
-		filenameField[read][fileNum]=fastqFiles[fileNum].getName().split("_");
-		System.arraycopy(filenameField[read][fileNum], 0, fileReadInfo[read][fileController], 0, filenameField[read][fileNum].length);
+		
+		for(int read=0; read<2; read++) {
+			int loopController, setStart; //control loops and arrays
+			int fileController=0; // resets to 0 so files are copied in correct array
+			
+			//set conditions for the loop
+			if(read==0){
+				setStart=0;
+				loopController=indexStartOfRead2;
+			}
+			else{
+				setStart=indexStartOfRead2;
+				loopController=numFastqFiles;
+			}
+				
+				for(fileNum=setStart; fileNum<loopController; fileNum++) {			
+					//following block could be set as separate private method
+					File outputFile = new File(outputDir+File.separator+countFileNames[fileNum]);
+						if(outputFile.isFile()){
+				            System.out.println(
+				                    "An output file "+countFileNames[fileNum]+"\n"+ 
+				                    " already exists in the output directory for file "+fastqFiles[fileNum]+".  Skipping.");
+				            continue;
+				        }
+					System.out.println("Reading FASTQ file: "+fastqFiles[fileNum]);//print
+					filenameField[read][fileNum]=fastqFiles[fileNum].getName().split("_");
+					System.arraycopy(filenameField[read][fileNum], 0, fileReadInfo[read][fileController], 0, filenameField[read][fileNum].length);
+					fileController++;
+					}
 		}
-/*	for(int check=0;check<5;check++){
-		if(fileNum!=2)
-		System.out.println("filenameField FOR [0]"+"["+fileNum+"]"+"["+check+"]"+"IS: "+filenameField[0][fileNum][check]); //DEBUG 
-		//fileNum++;
-	}
-*/	}
-//	fileNum=0;
-
-}
+		
 fileNum=0;
+//DEBUG print all array contents
 for(int left=0;left<2;left++){
 	for(int mid=0;mid<indexStartOfRead2;mid++){
 		for(int right=0;right<5;right++){
