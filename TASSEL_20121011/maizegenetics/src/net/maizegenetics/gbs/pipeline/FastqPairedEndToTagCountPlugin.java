@@ -383,7 +383,8 @@ else{
 				*/
 				
 				/*
-				 * 
+				 * NEED TO CHANGE allgoodreads TO REFLECT AND REPORT EACH DIRECTION SEPARATELY.
+				 * CAN ADD THEM TOGETHER AT THE END FOR A GRAND TOTAL IN CASE THAT'S USEFUL.
 				 */
 	            try{
 	                //Read in qseq file as a gzipped text stream if its name ends in ".gz", otherwise read as text
