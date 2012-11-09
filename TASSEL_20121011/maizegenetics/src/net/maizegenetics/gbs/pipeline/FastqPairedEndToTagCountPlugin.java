@@ -305,6 +305,20 @@ System.out.println("OLD enzyme is:"+ enzyme);
 //String[] hcEnzyme={"PstI","MspI"};
 String[] hcEnzyme={"PstI-MspI","MspI-PstI"};
 String[] hcKeyFiles={"GBS.key","GBS2.key"};
+
+/*
+if(fileReadInfo[0][b][0].contains("1")){
+	keyFileS=hcKeyFiles[0];
+	enzyme=hcEnzyme[0];
+	System.out.println("NEW Key file is:" + keyFileS);
+	System.out.println("NEW enzyme is:"+ enzyme);
+	}
+else{
+	keyFileS=hcKeyFiles[1];
+	enzyme=hcEnzyme[1];
+	System.out.println("NEW Key file is:"+ keyFileS);
+	System.out.println("NEW enzyme is:"+ enzyme);}
+*/
 		
  			TagCountMutable theTC=null;
  			/* 
@@ -314,107 +328,122 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
  			 * read is[1]
  			 */
             ParseBarcodeRead [] thePBR = new ParseBarcodeRead [2];  
-           /*
+            String[][] taxaNames=new String[2][];
+            /*
             * Need to adjust this loop to read matching pairs simultaneously
             */
-            for(int a=0;a<indexStartOfRead2;a++){
-            	for(int b=0;b<indexStartOfRead2;b++){
-            		
-            		if(fileReadInfo[a][b][0].contains("1")){
-						keyFileS=hcKeyFiles[0];
-						enzyme=hcEnzyme[0];
-						System.out.println("NEW Key file is:" + keyFileS);
-						System.out.println("NEW enzyme is:"+ enzyme);}
-					else{
-						keyFileS=hcKeyFiles[1];
-						enzyme=hcEnzyme[1];
-						System.out.println("NEW Key file is:"+ keyFileS);
-						System.out.println("NEW enzyme is:"+ enzyme);}
-            		
-					if(fileReadInfo[a][b].length==5) {
-						thePBR[0]=new ParseBarcodeRead(
-								keyFileS, enzyme, fileReadInfo[a][b][1], fileReadInfo[a][b][3]);
-					}
-					else {
-					System.out.println("Error in parsing file name:");
-					System.out.println("   The filename does not contain a 5 underscore-delimited value.");
-					System.out.println("   Expect: code_flowcell_s_lane_fastq.txt.gz");
-					System.out.println("   Filename: "+fileReadInfo[a][b]);
-					continue;
-					}
-		
-					System.out.println("Total barcodes found in lane:"+thePBR[0].getBarCodeCount());
-		            if(thePBR[0].getBarCodeCount() == 0){
-		                System.out.println("No barcodes found.  Skipping this flowcell lane."); continue;
-		            }
-		            String[] taxaNames=new String[thePBR[0].getBarCodeCount()];
-		            
-		            for (int i = 0; i < taxaNames.length; i++) {
-		                taxaNames[i]=thePBR[0].getTheBarcodes(i).getTaxaName();
-		            }
-		
-		            try{
-		                //Read in qseq file as a gzipped text stream if its name ends in ".gz", otherwise read as text
-		                if(fastqFiles[fileNum].getName().endsWith(".gz")){
-		                    br = new BufferedReader(new InputStreamReader(new MultiMemberGZIPInputStream(new FileInputStream(fastqFiles[fileNum]))));
-		                }else{
-		                    br=new BufferedReader(new FileReader(fastqFiles[fileNum]),65536);
-		                }
-		                String sequence="", qualityScore="";
-		                String temp;
-		
-		                try{
-		                    theTC = new TagCountMutable(2, maxGoodReads);
-		                }catch(OutOfMemoryError e){
-		                    System.out.println(
-		                        "Your system doesn't have enough memory to store the number of sequences"+
-		                        "you specified.  Try using a smaller value for the minimum number of reads."
-		                    );
-		                }
-		                int currLine=0;
-		                allReads = 0;
-		                goodBarcodedReads = 0;
-		                while (((temp = br.readLine()) != null) && goodBarcodedReads < maxGoodReads) {
-		                    currLine++;
-		                    try{
-		                        //The quality score is every 4th line; the sequence is every 4th line starting from the 2nd.
-		                        if((currLine+2)%4==0){
-		                            sequence = temp;
-		                        }else if(currLine%4==0){
-		                            qualityScore = temp;
-		                            allReads++;
-		                            //After quality score is read, decode barcode using the current sequence & quality  score
-		                            ReadBarcodeResult rr = thePBR[0].parseReadIntoTagAndTaxa(sequence, qualityScore, true, 0);
-		                            if (rr != null){
-		                                goodBarcodedReads++;
-		                                theTC.addReadCount(rr.getRead(), rr.getLength(), 1);
-		                            }
-		                            if (allReads % 1000000 == 0) {
-		                                System.out.println("Total Reads:" + allReads + " Reads with barcode and cut site overhang:" + goodBarcodedReads);
-		                            }
-		                        }
-		                    }catch(NullPointerException e){
-		                        System.out.println("Unable to correctly parse the sequence and "
-		                        + "quality score from fastq file.  Your fastq file may have been corrupted.");
-		                        System.exit(0);
-		                    }
-		                }
-	                System.out.println("Total number of reads in lane=" + allReads);
-	                System.out.println("Total number of good barcoded reads=" + goodBarcodedReads);
-	                System.out.println("Timing process (sorting, collapsing, and writing TagCount to file).");
-	                timePoint1 = System.currentTimeMillis();
-	                theTC.collapseCounts();
-	                theTC.writeTagCountFile(outputDir+File.separator+countFileNames[fileNum], FilePacking.Bit, minCount);
-	                System.out.println("Process took " + (System.currentTimeMillis() - timePoint1) + " milliseconds.");
-	                br.close();
-	                fileNum++;
+            for(int b=0;b<indexStartOfRead2;b++){
+
+				if(fileReadInfo[0][b].length==5) {
+					thePBR[0]=new ParseBarcodeRead(
+							hcKeyFiles[0], hcEnzyme[0], fileReadInfo[0][b][1], fileReadInfo[0][b][3]);
+				}
+				else {
+				System.out.println("Error in parsing file name:");
+				System.out.println("   The filename does not contain a 5 underscore-delimited value.");
+				System.out.println("   Expect: code_flowcell_s_lane_fastq.txt.gz");
+				System.out.println("   Filename: "+fileReadInfo[0][b]);
+				continue;
+				}
+				
+				
+				if(fileReadInfo[1][b].length==5) {
+					thePBR[1]=new ParseBarcodeRead(
+							hcKeyFiles[1], hcEnzyme[1], fileReadInfo[1][b][1], fileReadInfo[1][b][3]);	
+				}
+				else {
+				System.out.println("Error in parsing file name:");
+				System.out.println("   The filename does not contain a 5 underscore-delimited value.");
+				System.out.println("   Expect: code_flowcell_s_lane_fastq.txt.gz");
+				System.out.println("   Filename: "+fileReadInfo[1][b]);
+				continue;
+				}
+	
+				
+				System.out.println("\nTotal barcodes found in lane:"+thePBR[0].getBarCodeCount());
+				if(thePBR[0].getBarCodeCount() == 0){
+	                System.out.println("No barcodes found.  Skipping this flowcell lane."); continue;
+	            }
+				
+				System.out.println("\nTotal barcodes found in lane:"+thePBR[1].getBarCodeCount());
+				if(thePBR[1].getBarCodeCount() == 0){
+	                System.out.println("No barcodes found.  Skipping this flowcell lane."); continue;
+	            }
+				/* as far as I can tell, this bit of code is not used anywhere downstream.
+				taxaNames[0]=new String[thePBR[0].getBarCodeCount()];
+	            taxaNames[1]=new String[thePBR[1].getBarCodeCount()];
 	            
-			        } catch(Exception e) {
-			            System.out.println("Catch testBasicPipeline c="+goodBarcodedReads+" e="+e);
-			            e.printStackTrace();
-			            System.out.println("Finished reading "+(fileNum+1)+" of "+fastqFiles.length+" sequence files.");
-	        			}
-            	}
+	            for (int i = 0; i < taxaNames[0].length; i++) {
+	                taxaNames[0][i]=thePBR[0].getTheBarcodes(i).getTaxaName();
+	            }
+	            for (int i = 0; i < taxaNames[0].length; i++) {
+	                taxaNames[1][i]=thePBR[1].getTheBarcodes(i).getTaxaName();
+	            }
+				*/
+	            try{
+	                //Read in qseq file as a gzipped text stream if its name ends in ".gz", otherwise read as text
+	                if(fastqFiles[fileNum].getName().endsWith(".gz")){
+	                    br = new BufferedReader(new InputStreamReader(
+	                    						new MultiMemberGZIPInputStream(
+	                    						new FileInputStream(fastqFiles[fileNum]))));
+	                }else{
+	                    br=new BufferedReader(new FileReader(fastqFiles[fileNum]),65536);
+	                }
+	                String sequence="", qualityScore="";
+	                String temp;
+	
+	                try{
+	                    theTC = new TagCountMutable(2, maxGoodReads);
+	                }catch(OutOfMemoryError e){
+	                    System.out.println(
+	                        "Your system doesn't have enough memory to store the number of sequences"+
+	                        "you specified.  Try using a smaller value for the minimum number of reads."
+	                    );
+	                }
+	                int currLine=0;
+	                allReads = 0;
+	                goodBarcodedReads = 0;
+	                while (((temp = br.readLine()) != null) && goodBarcodedReads < maxGoodReads) {
+	                    currLine++;
+	                    try{
+	                        //The quality score is every 4th line; the sequence is every 4th line starting from the 2nd.
+	                        if((currLine+2)%4==0){
+	                            sequence = temp;
+	                        }else if(currLine%4==0){
+	                            qualityScore = temp;
+	                            allReads++;
+	                            //After quality score is read, decode barcode using the current sequence & quality  score
+	                            ReadBarcodeResult rr = thePBR[0].parseReadIntoTagAndTaxa(sequence, qualityScore, true, 0);
+	                            if (rr != null){
+	                                goodBarcodedReads++;
+	                                theTC.addReadCount(rr.getRead(), rr.getLength(), 1);
+	                            }
+	                            if (allReads % 1000000 == 0) {
+	                                System.out.println("Total Reads:" + allReads + " Reads with barcode and cut site overhang:" + goodBarcodedReads);
+	                            }
+	                        }
+	                    }catch(NullPointerException e){
+	                        System.out.println("Unable to correctly parse the sequence and "
+	                        + "quality score from fastq file.  Your fastq file may have been corrupted.");
+	                        System.exit(0);
+	                    }
+	                }
+                System.out.println("Total number of reads in lane=" + allReads);
+                System.out.println("Total number of good barcoded reads=" + goodBarcodedReads);
+                System.out.println("Timing process (sorting, collapsing, and writing TagCount to file).");
+                timePoint1 = System.currentTimeMillis();
+                theTC.collapseCounts();
+                theTC.writeTagCountFile(outputDir+File.separator+countFileNames[fileNum], FilePacking.Bit, minCount);
+                System.out.println("Process took " + (System.currentTimeMillis() - timePoint1) + " milliseconds.");
+                br.close();
+                fileNum++;
+            
+		        } catch(Exception e) {
+		            System.out.println("Catch testBasicPipeline c="+goodBarcodedReads+" e="+e);
+		            e.printStackTrace();
+		            System.out.println("Finished reading "+(fileNum+1)+" of "+fastqFiles.length+" sequence files.");
+        			}
+            	
             }
     }
     @Override
