@@ -131,7 +131,8 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
      * @param minCount        The minimum number of occurrences of a tag in a fastq file for it to be included in the output tagCounts file
      */
     public static void countTags(String keyFileS, String enzyme, String fastqDirectory, String outputDir, int maxGoodReads, int minCount) {
-        BufferedReader br;
+        BufferedReader br1;
+        BufferedReader br2;;
 //COUNTER VARIABLE
         String[] countFileNames = null;
 
@@ -320,7 +321,7 @@ else{
 	System.out.println("NEW enzyme is:"+ enzyme);}
 */
 		
- 			TagCountMutable theTC=null;
+ 			TagCountMutable [] theTC=new TagCountMutable [2];
  			/* 
  			 * Reads the key file and store the expected barcodes for a lane.
  			 * Set to a length of 2 to hold up to two key files' worth of information.
@@ -328,7 +329,7 @@ else{
  			 * read is[1]
  			 */
             ParseBarcodeRead [] thePBR = new ParseBarcodeRead [2];  
-            String[][] taxaNames=new String[2][];
+          //  String[][] taxaNames=new String[2][];
             /*
             * Need to adjust this loop to read matching pairs simultaneously
             */
@@ -380,45 +381,74 @@ else{
 	                taxaNames[1][i]=thePBR[1].getTheBarcodes(i).getTaxaName();
 	            }
 				*/
+				
+				/*
+				 * 
+				 */
 	            try{
 	                //Read in qseq file as a gzipped text stream if its name ends in ".gz", otherwise read as text
 	                if(fastqFiles[fileNum].getName().endsWith(".gz")){
-	                    br = new BufferedReader(new InputStreamReader(
+	                    br1 = new BufferedReader(new InputStreamReader(
 	                    						new MultiMemberGZIPInputStream(
 	                    						new FileInputStream(fastqFiles[fileNum]))));
+	                    br2 = new BufferedReader(new InputStreamReader(
+        						new MultiMemberGZIPInputStream(
+        						new FileInputStream(fastqFiles[fileNum+indexStartOfRead2]))));
 	                }else{
-	                    br=new BufferedReader(new FileReader(fastqFiles[fileNum]),65536);
+	                    br1=new BufferedReader(new FileReader(fastqFiles[fileNum]),65536);
+	                    br2=new BufferedReader(new FileReader(fastqFiles[fileNum+indexStartOfRead2]),65536);
 	                }
-	                String sequence="", qualityScore="";
-	                String temp;
+	                String sequenceF="", sequenceR="", qualityScoreF="", qualityScoreR="";
+	                String tempF, tempR;
 	
 	                try{
-	                    theTC = new TagCountMutable(2, maxGoodReads);
+	                    theTC[0] = new TagCountMutable(2, maxGoodReads);
+	                    theTC[1] = new TagCountMutable(2, maxGoodReads);
 	                }catch(OutOfMemoryError e){
 	                    System.out.println(
 	                        "Your system doesn't have enough memory to store the number of sequences"+
 	                        "you specified.  Try using a smaller value for the minimum number of reads."
 	                    );
 	                }
+	                
 	                int currLine=0;
 	                allReads = 0;
 	                goodBarcodedReads = 0;
-	                while (((temp = br.readLine()) != null) && goodBarcodedReads < maxGoodReads) {
+	                ReadBarcodeResult [] rr = new ReadBarcodeResult [2];
+	                while (((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null) 
+	                		&& goodBarcodedReads < maxGoodReads) {
 	                    currLine++;
 	                    try{
 	                        //The quality score is every 4th line; the sequence is every 4th line starting from the 2nd.
 	                        if((currLine+2)%4==0){
-	                            sequence = temp;
+	                            sequenceF = tempF;
+	                            sequenceR = tempR;
 	                        }else if(currLine%4==0){
-	                            qualityScore = temp;
-	                            allReads++;
+	                            qualityScoreF = tempF;
+	                            qualityScoreR = tempR;
+	                            allReads += 2;
 	                            //After quality score is read, decode barcode using the current sequence & quality  score
-	                            ReadBarcodeResult rr = thePBR[0].parseReadIntoTagAndTaxa(sequence, qualityScore, true, 0);
-	                            if (rr != null){
+	                            rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0);
+	                            rr[1] = thePBR[1].parseReadIntoTagAndTaxa(sequenceR, qualityScoreR, true, 0);
+	                            if (rr[0] != null && rr[1] !=null){
 	                                goodBarcodedReads++;
-	                                theTC.addReadCount(rr.getRead(), rr.getLength(), 1);
+	                                theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
+	                                theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
 	                            }
-	                            if (allReads % 1000000 == 0) {
+	                            else if (rr[0] != null){
+	                                goodBarcodedReads++;
+	                                theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
+	                            }
+	                            else if (rr[1] != null){
+	                                goodBarcodedReads++;
+	                                theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
+	                            }
+	                            /*
+	                             * changed if conditional from 1000000 to 10000000
+	                             * Not sure if allgoodreads variable is giving the same information when paired files
+	                             * are being processed
+	                             */
+	                            if (allReads % 10000000 == 0) {
 	                                System.out.println("Total Reads:" + allReads + " Reads with barcode and cut site overhang:" + goodBarcodedReads);
 	                            }
 	                        }
@@ -428,14 +458,21 @@ else{
 	                        System.exit(0);
 	                    }
 	                }
+	                /*
+	                 * Not sure if allgoodreads variable is giving the same information when paired files
+	                 * are being processed
+	                 */
                 System.out.println("Total number of reads in lane=" + allReads);
                 System.out.println("Total number of good barcoded reads=" + goodBarcodedReads);
                 System.out.println("Timing process (sorting, collapsing, and writing TagCount to file).");
                 timePoint1 = System.currentTimeMillis();
-                theTC.collapseCounts();
-                theTC.writeTagCountFile(outputDir+File.separator+countFileNames[fileNum], FilePacking.Bit, minCount);
+                theTC[0].collapseCounts();
+                theTC[1].collapseCounts();
+                theTC[0].writeTagCountFile(outputDir+File.separator+countFileNames[fileNum], FilePacking.Bit, minCount);
+                theTC[1].writeTagCountFile(outputDir+File.separator+countFileNames[fileNum+indexStartOfRead2], FilePacking.Bit, minCount);
                 System.out.println("Process took " + (System.currentTimeMillis() - timePoint1) + " milliseconds.");
-                br.close();
+                br1.close();
+                br2.close();
                 fileNum++;
             
 		        } catch(Exception e) {
