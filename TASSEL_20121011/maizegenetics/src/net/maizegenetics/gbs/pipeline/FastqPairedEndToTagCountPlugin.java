@@ -388,16 +388,16 @@ else{
 				 */
 	            try{
 	                //Read in qseq file as a gzipped text stream if its name ends in ".gz", otherwise read as text
-	                if(fastqFiles[fileNum].getName().endsWith(".gz")){
+	                if(fastqFiles[b].getName().endsWith(".gz")){
 	                    br1 = new BufferedReader(new InputStreamReader(
 	                    						new MultiMemberGZIPInputStream(
-	                    						new FileInputStream(fastqFiles[fileNum]))));
+	                    						new FileInputStream(fastqFiles[b]))));
 	                    br2 = new BufferedReader(new InputStreamReader(
-        						new MultiMemberGZIPInputStream(
-        						new FileInputStream(fastqFiles[fileNum+indexStartOfRead2]))));
+        										new MultiMemberGZIPInputStream(
+        										new FileInputStream(fastqFiles[b+indexStartOfRead2]))));
 	                }else{
-	                    br1=new BufferedReader(new FileReader(fastqFiles[fileNum]),65536);
-	                    br2=new BufferedReader(new FileReader(fastqFiles[fileNum+indexStartOfRead2]),65536);
+	                    br1=new BufferedReader(new FileReader(fastqFiles[b]),65536);
+	                    br2=new BufferedReader(new FileReader(fastqFiles[b+indexStartOfRead2]),65536);
 	                }
 	                String sequenceF="", sequenceR="", qualityScoreF="", qualityScoreR="";
 	                String tempF, tempR;
@@ -469,8 +469,8 @@ else{
                 timePoint1 = System.currentTimeMillis();
                 theTC[0].collapseCounts();
                 theTC[1].collapseCounts();
-                theTC[0].writeTagCountFile(outputDir+File.separator+countFileNames[fileNum], FilePacking.Bit, minCount);
-                theTC[1].writeTagCountFile(outputDir+File.separator+countFileNames[fileNum+indexStartOfRead2], FilePacking.Bit, minCount);
+                theTC[0].writeTagCountFile(outputDir+File.separator+countFileNames[b], FilePacking.Bit, minCount);
+                theTC[1].writeTagCountFile(outputDir+File.separator+countFileNames[b+indexStartOfRead2], FilePacking.Bit, minCount);
                 System.out.println("Process took " + (System.currentTimeMillis() - timePoint1) + " milliseconds.");
                 br1.close();
                 br2.close();
