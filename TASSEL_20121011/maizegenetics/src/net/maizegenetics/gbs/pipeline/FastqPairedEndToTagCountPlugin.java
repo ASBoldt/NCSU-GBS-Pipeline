@@ -200,7 +200,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             }
         }
         
-        int allReads=0, goodBarcodedReads=0;
+        int allReads=0, goodBarcodedReads=0, goodBarcodedForwardReads=0, goodBarcodedReverseReads=0;
         int numFastqFiles = fastqFiles.length;  //number of files
 System.out.println("numFastqFiles IS: "+numFastqFiles); //TESTING & DEBUG         
         int indexStartOfRead2 = numFastqFiles/2;
@@ -417,6 +417,8 @@ else{
 	                int currLine=0;
 	                allReads = 0;
 	                goodBarcodedReads = 0;
+	                goodBarcodedForwardReads = 0;
+	                goodBarcodedReverseReads = 0;
 	                ReadBarcodeResult [] rr = new ReadBarcodeResult [2];
 	                while (((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null) 
 	                		&& goodBarcodedReads < maxGoodReads) {
@@ -435,15 +437,19 @@ else{
 	                            rr[1] = thePBR[1].parseReadIntoTagAndTaxa(sequenceR, qualityScoreR, true, 0);
 	                            if (rr[0] != null && rr[1] !=null){
 	                                goodBarcodedReads+=2;
+	                                goodBarcodedForwardReads++;
+	            	                goodBarcodedReverseReads++;
 	                                theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
 	                                theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
 	                            }
 	                            else if (rr[0] != null){
 	                                goodBarcodedReads++;
+	                                goodBarcodedForwardReads++;
 	                                theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
 	                            }
 	                            else if (rr[1] != null){
 	                                goodBarcodedReads++;
+	                                goodBarcodedReverseReads++;
 	                                theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
 	                            }
 	                            /*
@@ -452,7 +458,9 @@ else{
 	                             * are being processed
 	                             */
 	                            if (allReads % 10000000 == 0) {
-	                                System.out.println("Total Reads:" + allReads + " Reads with barcode and cut site overhang:" + goodBarcodedReads);
+	                                System.out.println("Total Reads:" + allReads + " All reads with barcode and cut site overhang: " + goodBarcodedReads);
+	                                System.out.println("Total Reads:" + allReads + " Forward reads with barcode and cut site overhang: " + goodBarcodedForwardReads);
+	                                System.out.println("Total Reads:" + allReads + " Reverse reads with barcode and cut site overhang: " + goodBarcodedReverseReads + "\n");
 	                            }
 	                        }
 	                    }catch(NullPointerException e){
@@ -467,6 +475,8 @@ else{
 	                 */
                 System.out.println("Total number of reads in lane=" + allReads);
                 System.out.println("Total number of good barcoded reads=" + goodBarcodedReads);
+                System.out.println("Total number of good barcoded forward reads=" + goodBarcodedForwardReads);
+                System.out.println("Total number of good barcoded reverse reads=" + goodBarcodedReverseReads);
                 System.out.println("Timing process (sorting, collapsing, and writing TagCount to file).");
                 timePoint1 = System.currentTimeMillis();
                 theTC[0].collapseCounts();
