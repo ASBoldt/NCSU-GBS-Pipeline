@@ -476,6 +476,9 @@ else{
                 System.out.println("Process took " + (System.currentTimeMillis() - timePoint1) + " milliseconds.");
                 br1.close();
                 br2.close();
+                //attempting to free memory before looping back and getting OOM error falsely
+                theTC[0]=null;
+                theTC[1]=null;
                 fileNum++;
             
 		        } catch(Exception e) {
