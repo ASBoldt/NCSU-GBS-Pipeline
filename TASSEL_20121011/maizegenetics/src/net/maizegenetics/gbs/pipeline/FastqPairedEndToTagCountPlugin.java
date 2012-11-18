@@ -432,7 +432,7 @@ else{
 	                            rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0);
 	                            rr[1] = thePBR[1].parseReadIntoTagAndTaxa(sequenceR, qualityScoreR, true, 0);
 	                            if (rr[0] != null && rr[1] !=null){
-	                                goodBarcodedReads++;
+	                                goodBarcodedReads+=2;
 	                                theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
 	                                theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
 	                            }
