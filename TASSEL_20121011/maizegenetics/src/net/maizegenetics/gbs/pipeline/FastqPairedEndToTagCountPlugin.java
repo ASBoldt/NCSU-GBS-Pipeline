@@ -7,6 +7,7 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import net.maizegenetics.util.MultiMemberGZIPInputStream;
 import javax.swing.ImageIcon;
@@ -185,6 +186,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
         File[] fastqFiles = fastqFilesArray.toArray(new File[fastqFilesArray.size()]);
 */        
         if(fastqFiles.length !=0 ){
+        	Arrays.sort(fastqFiles);
             System.out.println("Using the following FASTQ files:");
             
             
@@ -193,7 +195,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             for (int i=0; i<fastqFiles.length; i++) {
                 countFileNames[i] = fastqFiles[i].getName().replaceAll
                     ("(?i)\\.fq$|\\.fq\\.gz$|\\.fastq$|_fastq\\.txt$|_fastq\\.gz$|_fastq\\.txt\\.gz$|_sequence\\.txt$|_sequence\\.txt\\.gz$", ".cnt");
-//                        \\. escape . so it doesn't mean 'any char' & escape the backslash                
+//                        \\. escape . so it doesn't mean 'any char' & escape the backslash    
                 System.out.println(fastqFiles[i].getAbsolutePath());
             }
         }
