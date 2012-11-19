@@ -147,7 +147,7 @@ public class BaseEncoder {
      */
     public static long[] getLongArrayFromSeq(String seqF, String seqR) {
     	String seq=seqF+seqR;
-        if ((seq.length() % chunkSize != 0) {
+        if (seq.length() % chunkSize != 0) {
             return null;
         }
         long[] result = new long[seq.length() / chunkSize];
