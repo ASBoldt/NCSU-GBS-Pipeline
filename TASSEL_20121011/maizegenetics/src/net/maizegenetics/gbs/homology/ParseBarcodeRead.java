@@ -393,8 +393,43 @@ public class ParseBarcodeRead {
         return rbr; 
 
     }
+    
+    /**
+     * Overload
+     * @param seqS
+     * @param qualS
+     * @param fastq
+     * @param minQual
+     * @param lengthToKeep is the minimum acceptable sequence length 
+     * @return If barcode and cut site was found, and the length was acceptable returns the result and processed sequence, 
+     * 		if the barcode and cut site were not found return null
+     */
+    public ReadBarcodeResult parseReadIntoTagAndTaxa(String seqS, String qualS, boolean fastq, int minQual, int lengthToKeep) {
+        long[] read=new long[2];
+        if((minQual>0)&&(qualS!=null)) {
+            int firstBadBase=BaseEncoder.getFirstLowQualityPos(qualS, minQual);
+            if(firstBadBase<(maxBarcodeLength+2*chunkSize)) return null;
+        }
+        int miss = -1;
+        if (fastq) { miss=seqS.indexOf('N'); } else { miss=seqS.indexOf('.'); }
+        if((miss!=-1)&&(miss<(maxBarcodeLength+2*chunkSize))) return null;  //bad sequence so skip
+        Barcode bestBarcode=findBestBarcode(seqS,maximumMismatchInBarcodeAndOverhang);
+        if(bestBarcode==null) return null;  //overhang missing so skip
+        String genomicSeq=seqS.substring(bestBarcode.barLength, seqS.length());
+        ReadBarcodeResult tagProcessingResults = removeSeqAfterSecondCutSite(genomicSeq, (byte)(2*chunkSize));
+        if(tagProcessingResults.length != lengthToKeep) return null; // sequence not desired length
+        String hap=tagProcessingResults.paddedSequence;  //this is slow 20% of total time.   Tag, cut site processed, padded with poly-A
 
+        read=BaseEncoder.getLongArrayFromSeq(hap);
+        int pos=tagProcessingResults.length;
+        //TODO this instantiation should also include the orginal unprocessedSequence, processedSequence, and paddedSequence - the the object encode it 
 
+        ReadBarcodeResult rbr=new ReadBarcodeResult(read, (byte)pos, bestBarcode.getTaxaName());
+
+        return rbr; 
+
+    }
+    
     public int getBarCodeCount() {
         return theBarcodes.length;
     }
