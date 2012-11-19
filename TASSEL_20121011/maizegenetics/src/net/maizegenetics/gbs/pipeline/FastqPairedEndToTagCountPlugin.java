@@ -330,7 +330,7 @@ else{
  			 * The convention will be that the forward read is [0] and the reverse
  			 * read is[1]
  			 */
-            ParseBarcodeRead [] thePBR = new ParseBarcodeRead [2];  
+            ParseBarcodeRead [] thePBR = new ParseBarcodeRead [3];  
           //  String[][] taxaNames=new String[2][];
             /*
             * Need to adjust this loop to read matching pairs simultaneously
@@ -407,10 +407,11 @@ else{
 	                try{
 	                    theTC[0] = new TagCountMutable(2, maxGoodReads);
 	                    theTC[1] = new TagCountMutable(2, maxGoodReads);
+	                    theTC[2] = new TagCountMutable(2, maxGoodReads);
 	                }catch(OutOfMemoryError e){
 	                    System.out.println(
 	                        "Your system doesn't have enough memory to store the number of sequences"+
-	                        "you specified.  Try using a smaller value for the minimum number of reads."
+	                        " you specified.  Try using a smaller value for the minimum number of reads."
 	                    );
 	                }
 	                
@@ -420,7 +421,8 @@ else{
 	                goodBarcodedReads = 0;
 	                goodBarcodedForwardReads = 0;
 	                goodBarcodedReverseReads = 0;
-	                ReadBarcodeResult [] rr = new ReadBarcodeResult [2];
+	                ReadBarcodeResult [] rr = new ReadBarcodeResult [3];
+
 	                while (((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null) 
 	                		&& goodBarcodedReads < maxGoodReads) {
 	                    currLine++;
@@ -442,9 +444,11 @@ else{
 	                             //   goodBarcodedForwardReads++;
 	            	             //   goodBarcodedReverseReads++;
 	            	                //add a 3rd array element to store the concatenation of rr0 and rr1
-	                                theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
-	                                theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
-	                                theTC[2].addReadCount(rr[0].getRead()+rr[1].getRead(), rr[0].getLength(), 1);
+	                             //   theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
+	                             //   theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
+	                                rr[2] = thePBR[2].parseReadIntoTagAndTaxa(sequenceF, sequenceR, qualityScoreF, qualityScoreR,
+	                                		true, 0,64);
+	                                theTC[2].addReadCount(rr[2].getRead(), rr[2].getLength(), 1);
 	                            }
 	                            else if (rr[0] != null){
 	                              //  goodBarcodedReads++;
@@ -486,10 +490,13 @@ else{
                 timePoint1 = System.currentTimeMillis();
                 theTC[0].collapseCounts();
                 theTC[1].collapseCounts();
-                theTC[2].collapseCounts();
                 theTC[0].writeTagCountFile(outputDir+File.separator+countFileNames[b], FilePacking.Bit, minCount);
                 theTC[1].writeTagCountFile(outputDir+File.separator+countFileNames[b+indexStartOfRead2], FilePacking.Bit, minCount);
+                
+                if(bothGood!=0){
+                theTC[2].collapseCounts();
                 theTC[2].writeTagCountFile(outputDir+File.separator+"combined"+b, FilePacking.Bit, minCount);
+                }
                 System.out.println("Process took " + (System.currentTimeMillis() - timePoint1) + " milliseconds.");
                 br1.close();
                 br2.close();
