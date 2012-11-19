@@ -415,6 +415,7 @@ else{
 	                }
 	                
 	                int currLine=0;
+	                int bothGood = 0;
 	                allReads = 0;
 	                goodBarcodedReads = 0;
 	                goodBarcodedForwardReads = 0;
@@ -437,6 +438,7 @@ else{
 	                            rr[1] = thePBR[1].parseReadIntoTagAndTaxa(sequenceR, qualityScoreR, true, 0,64);
 	                            if (rr[0] != null && rr[1] !=null){
 	                                goodBarcodedReads+=2;
+	                                bothGood++;
 	                                goodBarcodedForwardReads++;
 	            	                goodBarcodedReverseReads++;
 	                                theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
@@ -474,6 +476,7 @@ else{
 	                 * are being processed
 	                 */
                 System.out.println("Total number of reads in lane=" + allReads);
+                System.out.println("Total number of both good reads in lane=" + bothGood);
                 System.out.println("Total number of good barcoded reads=" + goodBarcodedReads);
                 System.out.println("Total number of good barcoded forward reads=" + goodBarcodedForwardReads);
                 System.out.println("Total number of good barcoded reverse reads=" + goodBarcodedReverseReads);
