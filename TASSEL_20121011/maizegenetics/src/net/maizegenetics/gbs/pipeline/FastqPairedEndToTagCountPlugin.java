@@ -446,9 +446,9 @@ else{
 	            	                //add a 3rd array element to store the concatenation of rr0 and rr1
 	                             //   theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
 	                             //   theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
-	                                rr[2] = thePBR[2].parseReadIntoTagAndTaxa(sequenceF, sequenceR, qualityScoreF, qualityScoreR,
-	                                		true, 0,64);
-	                                theTC[2].addReadCount(rr[2].getRead(), rr[2].getLength(), 1);
+	                        //        rr[2] = thePBR[2].parseReadIntoTagAndTaxa(sequenceF, sequenceR, qualityScoreF, qualityScoreR,
+	                        //        		true, 0,64);
+	                        //        theTC[2].addReadCount(rr[2].getRead(), rr[2].getLength(), 1);
 	                            }
 	                            else if (rr[0] != null){
 	                              //  goodBarcodedReads++;

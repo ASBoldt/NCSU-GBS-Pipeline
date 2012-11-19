@@ -443,14 +443,14 @@ public class ParseBarcodeRead {
     public ReadBarcodeResult parseReadIntoTagAndTaxa(String seqSF,String seqSR, String qualSF,String qualSR,
     		boolean fastq, int minQual, int lengthToKeep) {
         long[] read=new long[2];
-   /*     if((minQual>0)&&(qualS!=null)) {
-            int firstBadBase=BaseEncoder.getFirstLowQualityPos(qualS, minQual);
+        if((minQual>0)&&(qualSF!=null)) {
+            int firstBadBase=BaseEncoder.getFirstLowQualityPos(qualSF, minQual);
             if(firstBadBase<(maxBarcodeLength+2*chunkSize)) return null;
         }
         int miss = -1;
-        if (fastq) { miss=seqS.indexOf('N'); } else { miss=seqS.indexOf('.'); }
+        if (fastq) { miss=seqSF.indexOf('N'); } else { miss=seqSF.indexOf('.'); }
         if((miss!=-1)&&(miss<(maxBarcodeLength+2*chunkSize))) return null;  //bad sequence so skip
-    */    Barcode bestBarcodeF=findBestBarcode(seqSF,maximumMismatchInBarcodeAndOverhang);
+        Barcode bestBarcodeF=findBestBarcode(seqSF,maximumMismatchInBarcodeAndOverhang);
     	  Barcode bestBarcodeR=findBestBarcode(seqSR,maximumMismatchInBarcodeAndOverhang);
         if(bestBarcodeF==null) return null;  //overhang missing so skip
         if(bestBarcodeR==null) return null;  //overhang missing so skip
