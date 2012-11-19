@@ -433,8 +433,8 @@ else{
 	                            qualityScoreR = tempR;
 	                            allReads += 2;
 	                            //After quality score is read, decode barcode using the current sequence & quality  score
-	                            rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0);
-	                            rr[1] = thePBR[1].parseReadIntoTagAndTaxa(sequenceR, qualityScoreR, true, 0);
+	                            rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);
+	                            rr[1] = thePBR[1].parseReadIntoTagAndTaxa(sequenceR, qualityScoreR, true, 0,64);
 	                            if (rr[0] != null && rr[1] !=null){
 	                                goodBarcodedReads+=2;
 	                                goodBarcodedForwardReads++;
