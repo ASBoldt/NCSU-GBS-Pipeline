@@ -138,6 +138,24 @@ public class BaseEncoder {
         }
         return result;
     }
+    
+    /**
+     * @param seqF A String containing a DNA sequence in one direction.
+     * @param seqR A String containing a DNA sequence in the reverse direction.
+     * @return result A array of Long ints containing the binary representation of the sequence.
+     * null if sequence length is not a multiple of BaseEncoder.chunksize.
+     */
+    public static long[] getLongArrayFromSeq(String seqF, String seqR) {
+    	String seq=seqF+seqR;
+        if ((seq.length() % chunkSize != 0) {
+            return null;
+        }
+        long[] result = new long[seq.length() / chunkSize];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = getLongFromSeq(seq.substring(i * chunkSize, (i + 1) * chunkSize));
+        }
+        return result;
+    }
 
     //polyA is used represent unknown, but reverse complement will change it to polyT
     //which does not mean the same

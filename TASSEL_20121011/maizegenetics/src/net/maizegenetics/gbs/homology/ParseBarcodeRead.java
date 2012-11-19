@@ -467,7 +467,7 @@ public class ParseBarcodeRead {
         String hapF=tagProcessingResultsF.paddedSequence;  //this is slow 20% of total time.   Tag, cut site processed, padded with poly-A
         String hapR=tagProcessingResultsR.paddedSequence;
         
-        read=BaseEncoder.getLongArrayFromSeq(hapF)+BaseEncoder.getLongArrayFromSeq(hapR);
+        read=BaseEncoder.getLongArrayFromSeq(hapF,hapR);
         int pos=tagProcessingResultsF.length+tagProcessingResultsR.length;
         //TODO this instantiation should also include the orginal unprocessedSequence, processedSequence, and paddedSequence - the the object encode it 
 
