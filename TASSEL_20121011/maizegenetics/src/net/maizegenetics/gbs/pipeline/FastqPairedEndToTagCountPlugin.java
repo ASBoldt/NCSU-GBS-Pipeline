@@ -323,7 +323,7 @@ else{
 	System.out.println("NEW enzyme is:"+ enzyme);}
 */
 		
- 			TagCountMutable [] theTC=new TagCountMutable [2];
+ 			TagCountMutable [] theTC=new TagCountMutable [3];
  			/* 
  			 * Reads the key file and store the expected barcodes for a lane.
  			 * Set to a length of 2 to hold up to two key files' worth of information.
@@ -439,20 +439,22 @@ else{
 	                            if (rr[0] != null && rr[1] !=null){
 	                                goodBarcodedReads+=2;
 	                                bothGood++;
-	                                goodBarcodedForwardReads++;
-	            	                goodBarcodedReverseReads++;
+	                             //   goodBarcodedForwardReads++;
+	            	             //   goodBarcodedReverseReads++;
+	            	                //add a 3rd array element to store the concatenation of rr0 and rr1
 	                                theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
 	                                theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
+	                                theTC[2].addReadCount(rr[0].getRead()+rr[1].getRead(), rr[0].getLength(), 1);
 	                            }
 	                            else if (rr[0] != null){
-	                                goodBarcodedReads++;
+	                              //  goodBarcodedReads++;
 	                                goodBarcodedForwardReads++;
-	                                theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
+	                               // theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
 	                            }
 	                            else if (rr[1] != null){
-	                                goodBarcodedReads++;
+	                               // goodBarcodedReads++;
 	                                goodBarcodedReverseReads++;
-	                                theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
+	                               // theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
 	                            }
 	                            /*
 	                             * changed if conditional from 1000000 to 10000000
@@ -484,14 +486,17 @@ else{
                 timePoint1 = System.currentTimeMillis();
                 theTC[0].collapseCounts();
                 theTC[1].collapseCounts();
+                theTC[2].collapseCounts();
                 theTC[0].writeTagCountFile(outputDir+File.separator+countFileNames[b], FilePacking.Bit, minCount);
                 theTC[1].writeTagCountFile(outputDir+File.separator+countFileNames[b+indexStartOfRead2], FilePacking.Bit, minCount);
+                theTC[2].writeTagCountFile(outputDir+File.separator+"combined"+b, FilePacking.Bit, minCount);
                 System.out.println("Process took " + (System.currentTimeMillis() - timePoint1) + " milliseconds.");
                 br1.close();
                 br2.close();
                 //attempting to free memory before looping back and getting OOM error falsely
                 theTC[0]=null;
                 theTC[1]=null;
+                theTC[2]=null;
                 fileNum++;
             
 		        } catch(Exception e) {
