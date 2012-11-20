@@ -370,7 +370,7 @@ public class ParseBarcodeRead {
      * @return If barcode and cut site was found returns the result and processed sequence, if the barcode and cut site were not found return null
      */
     public ReadBarcodeResult parseReadIntoTagAndTaxa(String seqS, String qualS, boolean fastq, int minQual) {
-        long[] read=new long[2];
+    	 	long[] read=new long[2];
         if((minQual>0)&&(qualS!=null)) {
             int firstBadBase=BaseEncoder.getFirstLowQualityPos(qualS, minQual);
             if(firstBadBase<(maxBarcodeLength+2*chunkSize)) return null;
@@ -405,7 +405,8 @@ public class ParseBarcodeRead {
      * 		if the barcode and cut site were not found return null
      */
     public ReadBarcodeResult parseReadIntoTagAndTaxa(String seqS, String qualS, boolean fastq, int minQual, int lengthToKeep) {
-        long[] read=new long[2];
+    	//System.out.println("here B");
+    	long[] read=new long[2];
         if((minQual>0)&&(qualS!=null)) {
             int firstBadBase=BaseEncoder.getFirstLowQualityPos(qualS, minQual);
             if(firstBadBase<(maxBarcodeLength+2*chunkSize)) return null;
@@ -417,6 +418,7 @@ public class ParseBarcodeRead {
         if(bestBarcode==null) return null;  //overhang missing so skip
         String genomicSeq=seqS.substring(bestBarcode.barLength, seqS.length());
         ReadBarcodeResult tagProcessingResults = removeSeqAfterSecondCutSite(genomicSeq, (byte)(2*chunkSize));
+        System.out.println("tagProcessingReults.length: " + tagProcessingResults.length);
         if(tagProcessingResults.length != lengthToKeep) return null; // sequence not desired length
         String hap=tagProcessingResults.paddedSequence;  //this is slow 20% of total time.   Tag, cut site processed, padded with poly-A
 
@@ -442,37 +444,53 @@ public class ParseBarcodeRead {
      */
     public ReadBarcodeResult parseReadIntoTagAndTaxa(String seqSF,String seqSR, String qualSF,String qualSR,
     		boolean fastq, int minQual, int lengthToKeep) {
-        long[] read=new long[2];
-        if((minQual>0)&&(qualSF!=null)) {
-            int firstBadBase=BaseEncoder.getFirstLowQualityPos(qualSF, minQual);
-            if(firstBadBase<(maxBarcodeLength+2*chunkSize)) return null;
+    	System.out.println("here C");
+    	System.out.println("here 1");
+    	long[] read=new long[2];
+    	
+        if((minQual>0)&&(qualSF!=null)&&(qualSR!=null)) {
+            int firstBadBaseF=BaseEncoder.getFirstLowQualityPos(qualSF, minQual);
+            int firstBadBaseR=BaseEncoder.getFirstLowQualityPos(qualSR, minQual);
+            if(firstBadBaseF<(maxBarcodeLength+2*chunkSize)&& firstBadBaseR<(maxBarcodeLength+2*chunkSize)) return null;
         }
-        int miss = -1;
-        if (fastq) { miss=seqSF.indexOf('N'); } else { miss=seqSF.indexOf('.'); }
-        if((miss!=-1)&&(miss<(maxBarcodeLength+2*chunkSize))) return null;  //bad sequence so skip
+        System.out.println("here 2");
+        int missF = -1;
+        int missR = -1;
+        
+        if (fastq) { 
+        	missF=seqSF.indexOf('N'); 
+        	missR=seqSR.indexOf('N');
+        	} 
+        else { 
+    		missF=seqSF.indexOf('.'); 
+    		missR=seqSR.indexOf('.');
+    		}
+        System.out.println("here 3");
+        if((missF!=-1)&&(missF<(maxBarcodeLength+2*chunkSize)) &&
+        		(missR!=-1)&&(missR<(maxBarcodeLength+2*chunkSize))) return null;  //bad sequence so skip
+        System.out.println("here 4");
         Barcode bestBarcodeF=findBestBarcode(seqSF,maximumMismatchInBarcodeAndOverhang);
-    	  Barcode bestBarcodeR=findBestBarcode(seqSR,maximumMismatchInBarcodeAndOverhang);
+    	Barcode bestBarcodeR=findBestBarcode(seqSR,maximumMismatchInBarcodeAndOverhang);
+    	System.out.println("here 5");
         if(bestBarcodeF==null) return null;  //overhang missing so skip
         if(bestBarcodeR==null) return null;  //overhang missing so skip
-        
+        System.out.println("here 6");
         String genomicSeqF=seqSF.substring(bestBarcodeF.barLength, seqSF.length());
         String genomicSeqR=seqSR.substring(bestBarcodeR.barLength, seqSR.length());
+        System.out.println("here 7");
+        String concatenated= genomicSeqF+genomicSeqR;
         
-        ReadBarcodeResult tagProcessingResultsF = removeSeqAfterSecondCutSite(genomicSeqF, (byte)(2*chunkSize));
-        ReadBarcodeResult tagProcessingResultsR = removeSeqAfterSecondCutSite(genomicSeqR, (byte)(2*chunkSize));
-        
-        if(tagProcessingResultsF.length != lengthToKeep) return null; // sequence not desired length
-        if(tagProcessingResultsR.length != lengthToKeep) return null; // sequence not desired length
-        
-        String hapF=tagProcessingResultsF.paddedSequence;  //this is slow 20% of total time.   Tag, cut site processed, padded with poly-A
-        String hapR=tagProcessingResultsR.paddedSequence;
-        
-        read=BaseEncoder.getLongArrayFromSeq(hapF,hapR);
-        int pos=tagProcessingResultsF.length+tagProcessingResultsR.length;
-        //TODO this instantiation should also include the orginal unprocessedSequence, processedSequence, and paddedSequence - the the object encode it 
-
+        ReadBarcodeResult tagProcessingResults = new ReadBarcodeResult(concatenated);
+        System.out.println("here 8");
+        if(tagProcessingResults.length != (lengthToKeep*2)) return null; // concatenated sequence not desired length
+        System.out.println("here 9");
+        String hap=tagProcessingResults.paddedSequence;  //this is slow 20% of total time.   Tag, cut site processed, padded with poly-A
+        System.out.println("here 10");
+        read=BaseEncoder.getLongArrayFromSeq(hap);
+        int pos=tagProcessingResults.length;
+        System.out.println("here 11");
         ReadBarcodeResult rbr=new ReadBarcodeResult(read, (byte)pos, bestBarcodeF.getTaxaName());
-
+        System.out.println("here 12");
         return rbr; 
 
     }

@@ -38,7 +38,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
     String directoryName=null;
     String keyfile=null;
     String enzyme = null;
-    int maxGoodReads = 200000000;
+    int maxGoodReads = 150000000;
     int minCount =1;
     String outputDir=null;
 
@@ -372,17 +372,15 @@ else{
 				if(thePBR[1].getBarCodeCount() == 0){
 	                System.out.println("No barcodes found.  Skipping this flowcell lane."); continue;
 	            }
-				/* as far as I can tell, this bit of code is not used anywhere downstream.
-				taxaNames[0]=new String[thePBR[0].getBarCodeCount()];
-	            taxaNames[1]=new String[thePBR[1].getBarCodeCount()];
-	            
-	            for (int i = 0; i < taxaNames[0].length; i++) {
-	                taxaNames[0][i]=thePBR[0].getTheBarcodes(i).getTaxaName();
+				// as far as I can tell, this bit of code is not used anywhere downstream.
+				String[] taxaNamesF=new String[thePBR[0].getBarCodeCount()];
+	            for (int i = 0; i < taxaNamesF.length; i++) {
+	                taxaNamesF[i]=thePBR[0].getTheBarcodes(i).getTaxaName();
 	            }
-	            for (int i = 0; i < taxaNames[0].length; i++) {
-	                taxaNames[1][i]=thePBR[1].getTheBarcodes(i).getTaxaName();
+	            String[] taxaNamesR=new String[thePBR[1].getBarCodeCount()];
+	            for (int i = 0; i < taxaNamesR.length; i++) {
+	                taxaNamesR[i]=thePBR[1].getTheBarcodes(i).getTaxaName();
 	            }
-				*/
 				
 				/*
 				 * NEED TO CHANGE allgoodreads TO REFLECT AND REPORT EACH DIRECTION SEPARATELY.
@@ -397,6 +395,8 @@ else{
 	                    br2 = new BufferedReader(new InputStreamReader(
         										new MultiMemberGZIPInputStream(
         										new FileInputStream(fastqFiles[b+indexStartOfRead2]))));
+	                    
+	              System.out.println(fastqFiles[b].getName() + "---" + fastqFiles[b+indexStartOfRead2].getName());      
 	                }else{
 	                    br1=new BufferedReader(new FileReader(fastqFiles[b]),65536);
 	                    br2=new BufferedReader(new FileReader(fastqFiles[b+indexStartOfRead2]),65536);
@@ -422,9 +422,11 @@ else{
 	                goodBarcodedForwardReads = 0;
 	                goodBarcodedReverseReads = 0;
 	                ReadBarcodeResult [] rr = new ReadBarcodeResult [3];
+	                ReadBarcodeResult rbrBoth=null;
 
-	                while (((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null) 
+	                while ((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null 
 	                		&& goodBarcodedReads < maxGoodReads) {
+	                	if(bothGood<10000){
 	                    currLine++;
 	                    try{
 	                        //The quality score is every 4th line; the sequence is every 4th line starting from the 2nd.
@@ -446,11 +448,15 @@ else{
 	            	                //add a 3rd array element to store the concatenation of rr0 and rr1
 	                             //   theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
 	                             //   theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
-	                        //        rr[2] = thePBR[2].parseReadIntoTagAndTaxa(sequenceF, sequenceR, qualityScoreF, qualityScoreR,
-	                        //        		true, 0,64);
-	                        //        theTC[2].addReadCount(rr[2].getRead(), rr[2].getLength(), 1);
+	                     //           System.out.println("here 0");
+	                             //   rbrBoth = thePBR[2].parseReadIntoTagAndTaxa(sequenceF, sequenceR, qualityScoreF, qualityScoreR,
+	                             //   		true, 0,64);
+	                                System.out.println(rr[0].toString());
+	                                System.out.println(rr[1].toString()+"\n");
+	                     //           System.out.println("here 0a");
+	                     //           theTC[2].addReadCount(rbrBoth.getRead(), rbrBoth.getLength(), 1);
 	                            }
-	                            else if (rr[0] != null){
+	                       /*     else if (rr[0] != null){
 	                              //  goodBarcodedReads++;
 	                                goodBarcodedForwardReads++;
 	                               // theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
@@ -460,7 +466,7 @@ else{
 	                                goodBarcodedReverseReads++;
 	                               // theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
 	                            }
-	                            /*
+	                        */   /*
 	                             * changed if conditional from 1000000 to 10000000
 	                             * Not sure if allgoodreads variable is giving the same information when paired files
 	                             * are being processed
@@ -476,6 +482,10 @@ else{
 	                        + "quality score from fastq file.  Your fastq file may have been corrupted.");
 	                        System.exit(0);
 	                    }
+	                }
+	                	else{
+	                		goodBarcodedReads=maxGoodReads;
+	                	}
 	                }
 	                /*
 	                 * Not sure if allgoodreads variable is giving the same information when paired files
@@ -493,10 +503,10 @@ else{
                 theTC[0].writeTagCountFile(outputDir+File.separator+countFileNames[b], FilePacking.Bit, minCount);
                 theTC[1].writeTagCountFile(outputDir+File.separator+countFileNames[b+indexStartOfRead2], FilePacking.Bit, minCount);
                 
-                if(bothGood!=0){
-                theTC[2].collapseCounts();
-                theTC[2].writeTagCountFile(outputDir+File.separator+"combined"+b, FilePacking.Bit, minCount);
-                }
+       //         if(bothGood!=0){
+       //         theTC[2].collapseCounts();
+       //         theTC[2].writeTagCountFile(outputDir+File.separator+"combined"+b, FilePacking.Bit, minCount);
+       //         }
                 System.out.println("Process took " + (System.currentTimeMillis() - timePoint1) + " milliseconds.");
                 br1.close();
                 br2.close();
