@@ -8,6 +8,7 @@ import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.text.DecimalFormat;
 
 import net.maizegenetics.util.MultiMemberGZIPInputStream;
 import javax.swing.ImageIcon;
@@ -536,17 +537,18 @@ else{
      * @param reverse -  a counter that keeps track of the number of times only the reverse sequence registers as a good read
      * @param all - a counter that keeps the current total value of all lines read so far
      */
-    private static void reportStats(int both, int forward, int reverse, int all, int max){
+    private static void reportStats(int both, int forward, int reverse, int allGood, int max){
     	
-    	float percentAll = 100*(all/max);
-    	float percentBoth = 100*(both/all);
-    	float percentForward = 100*(forward/all);
-    	float percentReverse = 100*(reverse/all);
+    	float percentAll = 100*((float)allGood/max);
+    	float percentBoth = 100*((float)both/allGood);
+    	float percentForward = 100*((float)forward/allGood);
+    	float percentReverse = 100*((float)reverse/allGood);
+    	DecimalFormat formatter = new DecimalFormat("00.0");
     	
-    	System.out.println("The number of lines read so far is "+all+" (~"+percentAll+"%)");
-    	System.out.println("The number of good forward and reverse reads is: "+both+" (~"+percentBoth+"%)");
-    	System.out.println("The number of good forward only reads is: "+forward+" (~"+percentForward+"%)");
-    	System.out.println("The number of good reverse only reads is: "+reverse+" (~"+percentReverse+"%)");
+    	System.out.println("The number of good lines encountered so far is "+allGood+" (~"+formatter.format(percentAll)+"%)");
+    	System.out.println("The number of good forward and reverse reads is: "+both+" (~"+formatter.format(percentBoth)+"%)");
+    	System.out.println("The number of good forward only reads is: "+forward+" (~"+formatter.format(percentForward)+"%)");
+    	System.out.println("The number of good reverse only reads is: "+reverse+" (~"+formatter.format(percentReverse)+"%)");
     	System.out.println("Percentages are only an approximation");  	
     }
     
