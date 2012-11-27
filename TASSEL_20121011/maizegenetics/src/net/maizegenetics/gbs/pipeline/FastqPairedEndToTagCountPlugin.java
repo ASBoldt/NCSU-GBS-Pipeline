@@ -404,10 +404,14 @@ else{
 	                String sequenceF="", sequenceR="", qualityScoreF="", qualityScoreR="";
 	                String tempF, tempR;
 	
+	                /*
+	                 * give each outcome a possible 1/3 of the total space requested.
+	                 */
+	               
 	                try{
-	                    theTC[0] = new TagCountMutable(2, maxGoodReads);
-	                    theTC[1] = new TagCountMutable(2, maxGoodReads);
-	                    theTC[2] = new TagCountMutable(2, maxGoodReads);
+	                    theTC[0] = new TagCountMutable(2, Math.round(maxGoodReads/33));
+	                    theTC[1] = new TagCountMutable(2, Math.round(maxGoodReads/33));
+	                    theTC[2] = new TagCountMutable(2, Math.round(maxGoodReads/33));
 	                }catch(OutOfMemoryError e){
 	                    System.out.println(
 	                        "Your system doesn't have enough memory to store the number of sequences"+
@@ -426,7 +430,7 @@ else{
 
 	                while ((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null 
 	                		&& goodBarcodedReads < maxGoodReads) {
-	                	if(bothGood<10000){
+	          //      	if(bothGood<10000){
 	                    currLine++;
 	                    try{
 	                        //The quality score is every 4th line; the sequence is every 4th line starting from the 2nd.
@@ -443,38 +447,38 @@ else{
 	                            if (rr[0] != null && rr[1] !=null){
 	                                goodBarcodedReads+=2;
 	                                bothGood++;
-	                             //   goodBarcodedForwardReads++;
-	            	             //   goodBarcodedReverseReads++;
 	            	                //add a 3rd array element to store the concatenation of rr0 and rr1
 	                             //   theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
 	                             //   theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
 	                     //           System.out.println("here 0");
 	                             //   rbrBoth = thePBR[2].parseReadIntoTagAndTaxa(sequenceF, sequenceR, qualityScoreF, qualityScoreR,
 	                             //   		true, 0,64);
-	                                System.out.println(rr[0].toString());
-	                                System.out.println(rr[1].toString()+"\n");
+	                           //     System.out.println(rr[0].toString());
+	                            //    System.out.println(rr[1].toString()+"\n");
 	                     //           System.out.println("here 0a");
 	                     //           theTC[2].addReadCount(rbrBoth.getRead(), rbrBoth.getLength(), 1);
 	                            }
-	                       /*     else if (rr[0] != null){
+	                            else if (rr[0] != null){
 	                              //  goodBarcodedReads++;
 	                                goodBarcodedForwardReads++;
-	                               // theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
+	                               theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
 	                            }
 	                            else if (rr[1] != null){
 	                               // goodBarcodedReads++;
 	                                goodBarcodedReverseReads++;
-	                               // theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
+	                               theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
 	                            }
-	                        */   /*
+	                           /*
 	                             * changed if conditional from 1000000 to 10000000
 	                             * Not sure if allgoodreads variable is giving the same information when paired files
 	                             * are being processed
 	                             */
 	                            if (allReads % 10000000 == 0) {
-	                                System.out.println("Total Reads:" + allReads + " All reads with barcode and cut site overhang: " + goodBarcodedReads);
-	                                System.out.println("Total Reads:" + allReads + " Forward reads with barcode and cut site overhang: " + goodBarcodedForwardReads);
-	                                System.out.println("Total Reads:" + allReads + " Reverse reads with barcode and cut site overhang: " + goodBarcodedReverseReads + "\n");
+	                            	reportStats(bothGood, goodBarcodedForwardReads, goodBarcodedReverseReads, 
+	                            			goodBarcodedReads, maxGoodReads);
+	                           //     System.out.println("Total Reads:" + allReads + " All reads with barcode and cut site overhang: " + goodBarcodedReads);
+	                           //     System.out.println("Total Reads:" + allReads + " Forward reads with barcode and cut site overhang: " + goodBarcodedForwardReads);
+	                           //     System.out.println("Total Reads:" + allReads + " Reverse reads with barcode and cut site overhang: " + goodBarcodedReverseReads + "\n");
 	                            }
 	                        }
 	                    }catch(NullPointerException e){
@@ -482,10 +486,10 @@ else{
 	                        + "quality score from fastq file.  Your fastq file may have been corrupted.");
 	                        System.exit(0);
 	                    }
-	                }
-	                	else{
-	                		goodBarcodedReads=maxGoodReads;
-	                	}
+	              //  }
+	               // 	else{
+	               // 		goodBarcodedReads=maxGoodReads;
+	               // 	}
 	                }
 	                /*
 	                 * Not sure if allgoodreads variable is giving the same information when paired files
@@ -524,6 +528,28 @@ else{
             	
             }
     }
+    
+    /**
+     * Reporter method that prints stats to the console
+     * @param both - a counter that keeps track of the number of times both sequences register as good reads
+     * @param forward - a counter that keeps track of the number of times only the forward sequence registers as a good read
+     * @param reverse -  a counter that keeps track of the number of times only the reverse sequence registers as a good read
+     * @param all - a counter that keeps the current total value of all lines read so far
+     */
+    private static void reportStats(int both, int forward, int reverse, int all, int max){
+    	
+    	float percentAll = 100*(all/max);
+    	float percentBoth = 100*(both/all);
+    	float percentForward = 100*(forward/all);
+    	float percentReverse = 100*(reverse/all);
+    	
+    	System.out.println("The number of lines read so far is "+all+" (~"+percentAll+"%)");
+    	System.out.println("The number of good forward and reverse reads is: "+both+" (~"+percentBoth+"%)");
+    	System.out.println("The number of good forward only reads is: "+forward+" (~"+percentForward+"%)");
+    	System.out.println("The number of good reverse only reads is: "+reverse+" (~"+percentReverse+"%)");
+    	System.out.println("Percentages are only an approximation");  	
+    }
+    
     @Override
     public ImageIcon getIcon(){
        throw new UnsupportedOperationException("Not supported yet.");

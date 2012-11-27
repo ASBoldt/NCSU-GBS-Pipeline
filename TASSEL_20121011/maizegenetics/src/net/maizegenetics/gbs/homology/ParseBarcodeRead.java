@@ -418,7 +418,7 @@ public class ParseBarcodeRead {
         if(bestBarcode==null) return null;  //overhang missing so skip
         String genomicSeq=seqS.substring(bestBarcode.barLength, seqS.length());
         ReadBarcodeResult tagProcessingResults = removeSeqAfterSecondCutSite(genomicSeq, (byte)(2*chunkSize));
-        System.out.println("tagProcessingReults.length: " + tagProcessingResults.length);
+ //       System.out.println("tagProcessingReults.length: " + tagProcessingResults.length);
         if(tagProcessingResults.length != lengthToKeep) return null; // sequence not desired length
         String hap=tagProcessingResults.paddedSequence;  //this is slow 20% of total time.   Tag, cut site processed, padded with poly-A
 
