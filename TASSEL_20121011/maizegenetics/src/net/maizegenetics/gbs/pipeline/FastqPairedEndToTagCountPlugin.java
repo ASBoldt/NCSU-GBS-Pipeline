@@ -410,9 +410,9 @@ else{
 	                 */
 	               
 	                try{
-	                    theTC[0] = new TagCountMutable(2, Math.round(maxGoodReads/33));
-	                    theTC[1] = new TagCountMutable(2, Math.round(maxGoodReads/33));
-	                    theTC[2] = new TagCountMutable(2, Math.round(maxGoodReads/33));
+	                    theTC[0] = new TagCountMutable(2, maxGoodReads);
+	                    theTC[1] = new TagCountMutable(2, maxGoodReads);
+	                    theTC[2] = new TagCountMutable(2, maxGoodReads);
 	                }catch(OutOfMemoryError e){
 	                    System.out.println(
 	                        "Your system doesn't have enough memory to store the number of sequences"+
