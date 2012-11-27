@@ -157,11 +157,6 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
         	keyFileList[0] = tempFileList[0];
         	keyFileList[1] = tempFileList[1];
         }
-
- 
-// THIS IS WHERE FILE INPUT NEEDS TO BE ADJUSTED, TRY TO
-// CONTINUE TO USE THE DIRECTORY CRAWLER AND PARSE THE OUTPUT TO READ1
-// AND READ2
  
         File inputDirectory = new File(fastqDirectory);
         File[] fastqFiles = DirectoryCrawler.listFiles("(?i).*\\.fq$|.*\\.fq\\.gz$|.*\\.fastq$|.*_fastq\\.txt$|.*_fastq\\.gz$|.*_fastq\\.txt\\.gz$|.*_sequence\\.txt$|.*_sequence\\.txt\\.gz$", inputDirectory.getAbsolutePath());
@@ -283,6 +278,7 @@ System.out.println("fileField LEN IS: "+filenameField.length); //DEBUG
 				            System.out.println(
 				                    "An output file "+countFileNames[fileNum]+"\n"+ 
 				                    " already exists in the output directory for file "+fastqFiles[fileNum]+".  Skipping.");
+							fileController++;
 				            continue;
 				        }
 					System.out.println("Reading FASTQ file: "+fastqFiles[fileNum]);//print
@@ -306,23 +302,8 @@ for(int left=0;left<2;left++){
 //2 arrays for manually inputing multiple enzymes and keys for testing
 System.out.println("OLD Key file is:"+ keyFileS);            
 System.out.println("OLD enzyme is:"+ enzyme);
-//String[] hcEnzyme={"PstI","MspI"};
 String[] hcEnzyme={"PstI-MspI","MspI-PstI"};
 String[] hcKeyFiles={"GBS.key","GBS2.key"};
-
-/*
-if(fileReadInfo[0][b][0].contains("1")){
-	keyFileS=hcKeyFiles[0];
-	enzyme=hcEnzyme[0];
-	System.out.println("NEW Key file is:" + keyFileS);
-	System.out.println("NEW enzyme is:"+ enzyme);
-	}
-else{
-	keyFileS=hcKeyFiles[1];
-	enzyme=hcEnzyme[1];
-	System.out.println("NEW Key file is:"+ keyFileS);
-	System.out.println("NEW enzyme is:"+ enzyme);}
-*/
 		
  			TagCountMutable [] theTC=new TagCountMutable [3];
  			/* 
@@ -333,37 +314,27 @@ else{
  			 */
             ParseBarcodeRead [] thePBR = new ParseBarcodeRead [3];  
           //  String[][] taxaNames=new String[2][];
-            /*
-            * Need to adjust this loop to read matching pairs simultaneously
-            */
+            
             for(int b=0;b<indexStartOfRead2;b++){
 
-				if(fileReadInfo[0][b].length==5) {
+				if(fileReadInfo[0][b][0]!=null && fileReadInfo[0][b].length==5) {
 					thePBR[0]=new ParseBarcodeRead(
 							hcKeyFiles[0], hcEnzyme[0], fileReadInfo[0][b][1], fileReadInfo[0][b][3]);
 				}
 				else {
-				System.out.println("Error in parsing file name:");
-				System.out.println("   The filename does not contain a 5 underscore-delimited value.");
-				System.out.println("   Expect: code_flowcell_s_lane_fastq.txt.gz");
-				System.out.println("   Filename: "+fileReadInfo[0][b]);
+				 printParsingError();
 				continue;
 				}
 				
-				
-				if(fileReadInfo[1][b].length==5) {
+				if(fileReadInfo[0][b][0]!=null && fileReadInfo[1][b].length==5) {
 					thePBR[1]=new ParseBarcodeRead(
 							hcKeyFiles[1], hcEnzyme[1], fileReadInfo[1][b][1], fileReadInfo[1][b][3]);	
 				}
 				else {
-				System.out.println("Error in parsing file name:");
-				System.out.println("   The filename does not contain a 5 underscore-delimited value.");
-				System.out.println("   Expect: code_flowcell_s_lane_fastq.txt.gz");
-				System.out.println("   Filename: "+fileReadInfo[1][b]);
+					printParsingError();
 				continue;
 				}
 	
-				
 				System.out.println("\nTotal barcodes found in lane:"+thePBR[0].getBarCodeCount());
 				if(thePBR[0].getBarCodeCount() == 0){
 	                System.out.println("No barcodes found.  Skipping this flowcell lane."); continue;
@@ -383,11 +354,7 @@ else{
 	                taxaNamesR[i]=thePBR[1].getTheBarcodes(i).getTaxaName();
 	            }
 				
-				/*
-				 * NEED TO CHANGE allgoodreads TO REFLECT AND REPORT EACH DIRECTION SEPARATELY.
-				 * CAN ADD THEM TOGETHER AT THE END FOR A GRAND TOTAL IN CASE THAT'S USEFUL.
-				 */
-	            try{
+				try{
 	                //Read in qseq file as a gzipped text stream if its name ends in ".gz", otherwise read as text
 	                if(fastqFiles[b].getName().endsWith(".gz")){
 	                    br1 = new BufferedReader(new InputStreamReader(
@@ -397,18 +364,14 @@ else{
         										new MultiMemberGZIPInputStream(
         										new FileInputStream(fastqFiles[b+indexStartOfRead2]))));
 	                    
-	              System.out.println(fastqFiles[b].getName() + "---" + fastqFiles[b+indexStartOfRead2].getName());      
+	              System.out.println(fastqFiles[b].getName() + "---" + fastqFiles[b+indexStartOfRead2].getName()+"\n");      
 	                }else{
 	                    br1=new BufferedReader(new FileReader(fastqFiles[b]),65536);
 	                    br2=new BufferedReader(new FileReader(fastqFiles[b+indexStartOfRead2]),65536);
 	                }
 	                String sequenceF="", sequenceR="", qualityScoreF="", qualityScoreR="";
 	                String tempF, tempR;
-	
-	                /*
-	                 * give each outcome a possible 1/3 of the total space requested.
-	                 */
-	               
+	                            
 	                try{
 	                    theTC[0] = new TagCountMutable(2, maxGoodReads);
 	                    theTC[1] = new TagCountMutable(2, maxGoodReads);
@@ -449,9 +412,7 @@ else{
 	                                goodBarcodedReads+=2;
 	                                bothGood++;
 	            	                //add a 3rd array element to store the concatenation of rr0 and rr1
-	                             //   theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
-	                             //   theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
-	                     //           System.out.println("here 0");
+	                      
 	                             //   rbrBoth = thePBR[2].parseReadIntoTagAndTaxa(sequenceF, sequenceR, qualityScoreF, qualityScoreR,
 	                             //   		true, 0,64);
 	                           //     System.out.println(rr[0].toString());
@@ -469,11 +430,6 @@ else{
 	                                goodBarcodedReverseReads++;
 	                               theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
 	                            }
-	                           /*
-	                             * changed if conditional from 1000000 to 10000000
-	                             * Not sure if allgoodreads variable is giving the same information when paired files
-	                             * are being processed
-	                             */
 	                            if (allReads % 10000000 == 0) {
 	                            	reportStats(bothGood, goodBarcodedForwardReads, goodBarcodedReverseReads, 
 	                            			goodBarcodedReads, allReads);
@@ -489,10 +445,6 @@ else{
 	               // 		goodBarcodedReads=maxGoodReads;
 	               // 	}
 	                }
-	                /*
-	                 * Not sure if allgoodreads variable is giving the same information when paired files
-	                 * are being processed
-	                 */
                 reportStats(bothGood, goodBarcodedForwardReads, goodBarcodedReverseReads, 
             			goodBarcodedReads, maxGoodReads);
                 System.out.println("Timing process (sorting, collapsing, and writing TagCount to file).");
@@ -530,6 +482,7 @@ else{
      * @param forward - a counter that keeps track of the number of times only the forward sequence registers as a good read
      * @param reverse -  a counter that keeps track of the number of times only the reverse sequence registers as a good read
      * @param allGood - a counter that keeps the current total value of all lines read so far
+     * @param totalReads - the total number of lines, good or bad, that the program has read so far
      */
     private static void reportStats(int both, int forward, int reverse, int allGood, int totalReads){
     	
@@ -539,12 +492,24 @@ else{
     	float percentReverse = 100*((float)reverse/allGood);
     	DecimalFormat formatter = new DecimalFormat("00.0");
     	
-    	System.out.println("Total Reads:" + totalReads;
+    	System.out.println("Total Reads:" + totalReads);
     	System.out.println("The number of good lines encountered so far is "+allGood+" (~"+formatter.format(percentAll)+"%)");
     	System.out.println("The number of good forward and reverse reads is: "+both+" (~"+formatter.format(percentBoth)+"%)");
     	System.out.println("The number of good forward only reads is: "+forward+" (~"+formatter.format(percentForward)+"%)");
     	System.out.println("The number of good reverse only reads is: "+reverse+" (~"+formatter.format(percentReverse)+"%)");
     	System.out.println("Percentages are only an approximation\n");  	
+    }
+    
+    /**
+     * Prints a message to the console indicating there is a problem with the file name structure
+     * @param filename - name of file that failed parsing tests
+     */
+    private static void printParsingError(){
+    	
+    	System.out.println("Error in parsing file name:");
+		System.out.println("   The filename does not contain a 5 underscore-delimited value.");
+		System.out.println("   Expected: code_flowcell_s_lane_fastq.txt.gz");
+		System.out.println("OR There is already a file in the ouput folder of the same name");
     }
     
     @Override
