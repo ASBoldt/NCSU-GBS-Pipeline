@@ -476,10 +476,7 @@ else{
 	                             */
 	                            if (allReads % 10000000 == 0) {
 	                            	reportStats(bothGood, goodBarcodedForwardReads, goodBarcodedReverseReads, 
-	                            			goodBarcodedReads, maxGoodReads);
-	                           //     System.out.println("Total Reads:" + allReads + " All reads with barcode and cut site overhang: " + goodBarcodedReads);
-	                           //     System.out.println("Total Reads:" + allReads + " Forward reads with barcode and cut site overhang: " + goodBarcodedForwardReads);
-	                           //     System.out.println("Total Reads:" + allReads + " Reverse reads with barcode and cut site overhang: " + goodBarcodedReverseReads + "\n");
+	                            			goodBarcodedReads, allReads);
 	                            }
 	                        }
 	                    }catch(NullPointerException e){
@@ -496,11 +493,8 @@ else{
 	                 * Not sure if allgoodreads variable is giving the same information when paired files
 	                 * are being processed
 	                 */
-                System.out.println("Total number of reads in lane=" + allReads);
-                System.out.println("Total number of both good reads in lane=" + bothGood);
-                System.out.println("Total number of good barcoded reads=" + goodBarcodedReads);
-                System.out.println("Total number of good barcoded forward reads=" + goodBarcodedForwardReads);
-                System.out.println("Total number of good barcoded reverse reads=" + goodBarcodedReverseReads);
+                reportStats(bothGood, goodBarcodedForwardReads, goodBarcodedReverseReads, 
+            			goodBarcodedReads, maxGoodReads);
                 System.out.println("Timing process (sorting, collapsing, and writing TagCount to file).");
                 timePoint1 = System.currentTimeMillis();
                 theTC[0].collapseCounts();
@@ -535,16 +529,17 @@ else{
      * @param both - a counter that keeps track of the number of times both sequences register as good reads
      * @param forward - a counter that keeps track of the number of times only the forward sequence registers as a good read
      * @param reverse -  a counter that keeps track of the number of times only the reverse sequence registers as a good read
-     * @param all - a counter that keeps the current total value of all lines read so far
+     * @param allGood - a counter that keeps the current total value of all lines read so far
      */
-    private static void reportStats(int both, int forward, int reverse, int allGood, int max){
+    private static void reportStats(int both, int forward, int reverse, int allGood, int totalReads){
     	
-    	float percentAll = 100*((float)allGood/max);
+    	float percentAll = 100*((float)allGood/totalReads);
     	float percentBoth = 100*((float)both/allGood);
     	float percentForward = 100*((float)forward/allGood);
     	float percentReverse = 100*((float)reverse/allGood);
     	DecimalFormat formatter = new DecimalFormat("00.0");
     	
+    	System.out.println("Total Reads:" + totalReads;
     	System.out.println("The number of good lines encountered so far is "+allGood+" (~"+formatter.format(percentAll)+"%)");
     	System.out.println("The number of good forward and reverse reads is: "+both+" (~"+formatter.format(percentBoth)+"%)");
     	System.out.println("The number of good forward only reads is: "+forward+" (~"+formatter.format(percentForward)+"%)");
