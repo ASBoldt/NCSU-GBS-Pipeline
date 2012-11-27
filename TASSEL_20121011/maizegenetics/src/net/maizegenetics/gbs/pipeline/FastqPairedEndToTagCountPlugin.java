@@ -460,12 +460,12 @@ else{
 	                     //           theTC[2].addReadCount(rbrBoth.getRead(), rbrBoth.getLength(), 1);
 	                            }
 	                            else if (rr[0] != null){
-	                              //  goodBarcodedReads++;
+	                                goodBarcodedReads++;
 	                                goodBarcodedForwardReads++;
 	                               theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
 	                            }
 	                            else if (rr[1] != null){
-	                               // goodBarcodedReads++;
+	                                goodBarcodedReads++;
 	                                goodBarcodedReverseReads++;
 	                               theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
 	                            }
