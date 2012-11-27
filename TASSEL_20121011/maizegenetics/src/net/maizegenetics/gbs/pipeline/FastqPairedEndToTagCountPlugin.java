@@ -549,7 +549,7 @@ else{
     	System.out.println("The number of good forward and reverse reads is: "+both+" (~"+formatter.format(percentBoth)+"%)");
     	System.out.println("The number of good forward only reads is: "+forward+" (~"+formatter.format(percentForward)+"%)");
     	System.out.println("The number of good reverse only reads is: "+reverse+" (~"+formatter.format(percentReverse)+"%)");
-    	System.out.println("Percentages are only an approximation");  	
+    	System.out.println("Percentages are only an approximation\n");  	
     }
     
     @Override
