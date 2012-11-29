@@ -9,6 +9,8 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.text.DecimalFormat;
+import java.io.PrintWriter;
+import java.io.*;
 
 import net.maizegenetics.util.MultiMemberGZIPInputStream;
 import javax.swing.ImageIcon;
@@ -34,12 +36,10 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
     static long timePoint1;
     private ArgsEngine engine = null;
     private Logger logger = Logger.getLogger(FastqPairedEndToTagCountPlugin.class);
-// DEPENDING ON APPROACH, MAY NEED TO ADD ADDITIONAL DIRECOTORYnAME, OR
-// LOOP THROUGH THIS ONE TWICE
     String directoryName=null;
     String keyfile=null;
     String enzyme = null;
-    int maxGoodReads = 150000000;
+    int maxGoodReads = 75000000;
     int minCount =1;
     String outputDir=null;
 
@@ -137,6 +137,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
         BufferedReader br2;;
 //COUNTER VARIABLE
         String[] countFileNames = null;
+        ArrayList<String> al = new ArrayList <String>();  
 
         
         /* Grab ':' delimited key files */
@@ -375,7 +376,6 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                try{
 	                    theTC[0] = new TagCountMutable(2, maxGoodReads);
 	                    theTC[1] = new TagCountMutable(2, maxGoodReads);
-	                    theTC[2] = new TagCountMutable(2, maxGoodReads);
 	                }catch(OutOfMemoryError e){
 	                    System.out.println(
 	                        "Your system doesn't have enough memory to store the number of sequences"+
@@ -383,6 +383,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                    );
 	                }
 	                
+	                // clear all counters and controllers for the upcoming section
 	                int currLine=0;
 	                int bothGood = 0;
 	                allReads = 0;
@@ -390,8 +391,15 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                goodBarcodedForwardReads = 0;
 	                goodBarcodedReverseReads = 0;
 	                ReadBarcodeResult [] rr = new ReadBarcodeResult [3];
-	                ReadBarcodeResult rbrBoth=null;
-
+	                int alCount = 0;
+	                
+	                try {
+	                    PrintWriter out = new PrintWriter(
+	                    		new BufferedWriter(
+	                    				new FileWriter(
+	                    						outputDir+File.separator+countFileNames[b]+"-"+countFileNames[b+indexStartOfRead2]+".txt", true)));
+	                    
+	                    
 	                while ((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null 
 	                		&& goodBarcodedReads < maxGoodReads) {
 	          //      	if(bothGood<10000){
@@ -410,15 +418,22 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                            rr[1] = thePBR[1].parseReadIntoTagAndTaxa(sequenceR, qualityScoreR, true, 0,64);
 	                            if (rr[0] != null && rr[1] !=null){
 	                                goodBarcodedReads+=2;
+	                                goodBarcodedForwardReads++;
+	                                goodBarcodedReverseReads++;
 	                                bothGood++;
-	            	                //add a 3rd array element to store the concatenation of rr0 and rr1
-	                      
-	                             //   rbrBoth = thePBR[2].parseReadIntoTagAndTaxa(sequenceF, sequenceR, qualityScoreF, qualityScoreR,
-	                             //   		true, 0,64);
+	                                
+	                                theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
+	                                theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
+	                                
+	                                String alTemp=stitch(rr[0].toString(), rr[0].toString());
+	                                al.add(alTemp);
+	                                alCount=al.size();
+	                                out.println(alTemp);
+	                                
+
 	                           //     System.out.println(rr[0].toString());
 	                            //    System.out.println(rr[1].toString()+"\n");
-	                     //           System.out.println("here 0a");
-	                     //           theTC[2].addReadCount(rbrBoth.getRead(), rbrBoth.getLength(), 1);
+
 	                            }
 	                            else if (rr[0] != null){
 	                                goodBarcodedReads++;
@@ -430,9 +445,9 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                                goodBarcodedReverseReads++;
 	                               theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
 	                            }
-	                            if (allReads % 10000000 == 0) {
+	                            if (allReads % 1000000 == 0) {
 	                            	reportStats(bothGood, goodBarcodedForwardReads, goodBarcodedReverseReads, 
-	                            			goodBarcodedReads, allReads);
+	                            			goodBarcodedReads, allReads, alCount);
 	                            }
 	                        }
 	                    }catch(NullPointerException e){
@@ -440,31 +455,36 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                        + "quality score from fastq file.  Your fastq file may have been corrupted.");
 	                        System.exit(0);
 	                    }
+	                    
+	                } 
+	                out.close();
+	                }catch (IOException e) {
+	                    //oh noes!
+	                	;
+	                }
+	                
+	                
 	              //  }
 	               // 	else{
 	               // 		goodBarcodedReads=maxGoodReads;
 	               // 	}
-	                }
+	                
                 reportStats(bothGood, goodBarcodedForwardReads, goodBarcodedReverseReads, 
-            			goodBarcodedReads, maxGoodReads);
+            			goodBarcodedReads, maxGoodReads, alCount);
                 System.out.println("Timing process (sorting, collapsing, and writing TagCount to file).");
                 timePoint1 = System.currentTimeMillis();
                 theTC[0].collapseCounts();
                 theTC[1].collapseCounts();
                 theTC[0].writeTagCountFile(outputDir+File.separator+countFileNames[b], FilePacking.Bit, minCount);
                 theTC[1].writeTagCountFile(outputDir+File.separator+countFileNames[b+indexStartOfRead2], FilePacking.Bit, minCount);
-                
-       //         if(bothGood!=0){
-       //         theTC[2].collapseCounts();
-       //         theTC[2].writeTagCountFile(outputDir+File.separator+"combined"+b, FilePacking.Bit, minCount);
-       //         }
                 System.out.println("Process took " + (System.currentTimeMillis() - timePoint1) + " milliseconds.");
                 br1.close();
                 br2.close();
                 //attempting to free memory before looping back and getting OOM error falsely
                 theTC[0]=null;
                 theTC[1]=null;
-                theTC[2]=null;
+                
+                al.clear();
                 fileNum++;
             
 		        } catch(Exception e) {
@@ -484,7 +504,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
      * @param allGood - a counter that keeps the current total value of all lines read so far
      * @param totalReads - the total number of lines, good or bad, that the program has read so far
      */
-    private static void reportStats(int both, int forward, int reverse, int allGood, int totalReads){
+    private static void reportStats(int both, int forward, int reverse, int allGood, int totalReads, int listCount){
     	
     	float percentAll = 100*((float)allGood/totalReads);
     	float percentBoth = 100*((float)both/allGood);
@@ -495,9 +515,13 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     	System.out.println("Total Reads:" + totalReads);
     	System.out.println("The number of good lines encountered so far is "+allGood+" (~"+formatter.format(percentAll)+"%)");
     	System.out.println("The number of good forward and reverse reads is: "+both+" (~"+formatter.format(percentBoth)+"%)");
-    	System.out.println("The number of good forward only reads is: "+forward+" (~"+formatter.format(percentForward)+"%)");
-    	System.out.println("The number of good reverse only reads is: "+reverse+" (~"+formatter.format(percentReverse)+"%)");
-    	System.out.println("Percentages are only an approximation\n");  	
+    	System.out.println("The number of total good forward reads is: "+forward+" (~"+formatter.format(percentForward)+"%)");
+    	System.out.println("The number of total good reverse reads is: "+reverse+" (~"+formatter.format(percentReverse)+"%)");
+    	System.out.println("ArrayList count is "+listCount+"\n");
+    	System.out.println("Percentages are only an approximation\n");  
+    	
+    	
+    	
     }
     
     /**
@@ -510,6 +534,11 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 		System.out.println("   The filename does not contain a 5 underscore-delimited value.");
 		System.out.println("   Expected: code_flowcell_s_lane_fastq.txt.gz");
 		System.out.println("OR There is already a file in the ouput folder of the same name");
+    }
+    
+    private static String stitch(String forward, String reverse){
+    	String tempStitch=forward+","+reverse;
+    	return tempStitch;
     }
     
     @Override
