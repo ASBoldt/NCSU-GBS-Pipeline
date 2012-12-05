@@ -11,6 +11,9 @@ import java.util.Arrays;
 import java.text.DecimalFormat;
 import java.io.PrintWriter;
 import java.io.*;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.Map;
 
 import net.maizegenetics.util.MultiMemberGZIPInputStream;
 import javax.swing.ImageIcon;
@@ -39,7 +42,8 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
     String directoryName=null;
     String keyfile=null;
     String enzyme = null;
-    int maxGoodReads = 75000000;
+    //int maxGoodReads = 200000000;
+    int maxGoodReads = 150000000;
     int minCount =1;
     String outputDir=null;
 
@@ -84,19 +88,15 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 //        try{
             if(engine == null){
                 engine = new ArgsEngine();
-//NEED TO MODIFY TO SET TO TWO FILE LOCATIONS
                 engine.add("-i", "--input-directory", true);
-//MAY NEED TO MODIFY TO TAKE IN TWO KEY FILES
                 engine.add("-k", "--key-file", true);
-//NEED TO MODIFY TO SET TWO ENZYMES
                 engine.add("-e", "--enzyme", true);
                 engine.add("-s", "--max-reads", true);
                 engine.add("-c", "--min-count", true);
                 engine.add("-o", "--output-file", true);
                 engine.parse(args);
             }
-//CREATE A NESTING LOOP THAT RUNS THROUGH THE TWO DIRECTORIES AND CHECKS
-// FOR THE TWO ENZYMES
+
             if (engine.getBoolean("-i")) { directoryName = engine.getString("-i");}
             else{ printUsage(); throw new IllegalArgumentException("Please specify the location of your FASTQ files."); }
 
@@ -106,19 +106,14 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             if(engine.getBoolean("-e")){ enzyme = engine.getString("-e"); }
             else{ 
                 System.out.println("No enzyme specified.  Using enzyme listed in key file.");
-//                printUsage(); throw new IllegalArgumentException("Please specify the enzyme used to create the GBS library.");
             }
         
-//END THE NEST LOOP HERE
             if(engine.getBoolean("-s")){ maxGoodReads = Integer.parseInt(engine.getString("-s"));}
 
             if (engine.getBoolean("-c")) { minCount = Integer.parseInt(engine.getString("-c"));}
 
             if(engine.getBoolean("-o")){ outputDir = engine.getString("-o");}
             else{outputDir = directoryName;}
-//        }catch (Exception e){
-//            System.out.println("Caught exception while setting parameters of "+this.getClass()+": "+e);
-//        }
     }
 
     
@@ -137,7 +132,8 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
         BufferedReader br2;;
 //COUNTER VARIABLE
         String[] countFileNames = null;
-        ArrayList<String> al = new ArrayList <String>();  
+        HashMap <String, Integer> pairCount = new HashMap<String, Integer>();
+        String [] hashFileNames = null;
 
         
         /* Grab ':' delimited key files */
@@ -161,27 +157,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
  
         File inputDirectory = new File(fastqDirectory);
         File[] fastqFiles = DirectoryCrawler.listFiles("(?i).*\\.fq$|.*\\.fq\\.gz$|.*\\.fastq$|.*_fastq\\.txt$|.*_fastq\\.gz$|.*_fastq\\.txt\\.gz$|.*_sequence\\.txt$|.*_sequence\\.txt\\.gz$", inputDirectory.getAbsolutePath());
-// N.K. Code        File[] rawFastqFiles = DirectoryCrawler.listFiles("(?i).*\\.fq$|.*\\.fq\\.gz$|.*\\.fastq$|.*_fastq\\.txt$|.*_fastq\\.gz$|.*_fastq\\.txt\\.gz$|.*_sequence\\.txt$|.*_sequence\\.txt\\.gz$", inputDirectory.getAbsolutePath());
-//                                                      (?i) denotes case insensitive;                 \\. denotes escape . so it doesn't mean 'any char' & escape the backslash
-        
-        /* ----- Get only r1smp files ----- */
-/*        ArrayList<File> fastqFilesArray = new ArrayList<File>();
-        if (rawFastqFiles.length == 0){
-        	System.out.println("Couldn't find any files that end with \".fq\", \".fq.gz\", \".fastq\", \"_fastq.txt\", \"_fastq.gz\", \"_fastq.txt.gz\", \"_sequence.txt\", or \"_sequence.txt.gz\" in the supplied directory.");
-        	return;
-        }
-        
-        // Get array list of files with r1smp in them
-        for (int i = 0; i < rawFastqFiles.length; i++){
-        	String fileName = rawFastqFiles[i].getName();
-        	
-        	if (fileName.indexOf("r1smp") > -1){
-        		fastqFilesArray.add(rawFastqFiles[i]);
-        	}
-        }
-        // Cast to file array as following code relies on it
-        File[] fastqFiles = fastqFilesArray.toArray(new File[fastqFilesArray.size()]);
-*/        
+      
         if(fastqFiles.length !=0 ){
         	Arrays.sort(fastqFiles);
             System.out.println("Using the following FASTQ files:");
@@ -198,9 +174,11 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
         }
         
         int allReads=0, goodBarcodedReads=0, goodBarcodedForwardReads=0, goodBarcodedReverseReads=0;
-        int numFastqFiles = fastqFiles.length;  //number of files
-System.out.println("numFastqFiles IS: "+numFastqFiles); //TESTING & DEBUG         
-        int indexStartOfRead2 = numFastqFiles/2;
+        int numFastqFiles = fastqFiles.length;  //number of files   
+        int indexStartOfRead2 = numFastqFiles/2;  // index of where paired file should start, also number of pairs
+        
+        hashFileNames = new String[indexStartOfRead2]; 
+        
       //this chunk probably needs to be a separate private method
         if (indexStartOfRead2 % 2 !=0){
         System.out.println("There are an odd number of files so there won't be correct pairing"); 	
@@ -214,40 +192,6 @@ System.out.println("indexStartOfRead2 IS: "+indexStartOfRead2); //TESTING & DEBU
 		 * [][][y] will hold the parsed elements of the file name
 		 */
 		String [][][] fileReadInfo=new String[2][indexStartOfRead2][5]; 
-
-        /* Loop through all of the fastqFiles *
-        for(int fileNum=0; fileNum<indexStartOfRead2; fileNum++) { // cap is set to indexStartOfRead2
-        	//because files should be handled as pairs, so the counter doesn't need to iterate through
-        	//all of the counted files
-        	
-        	/* Get second read file by name */
-//        	File read1 = fastqFiles[fileNum];
- //       	String read1Name = read1.getAbsolutePath();
-//        	int index = read1Name.indexOf("r1smp")+1;
-        	
-//        	String read2Name = read1Name.substring(0, index) + "2" + read1Name.substring(index+1);
-//        	File read2 = new File(read2Name);
-        	
-        	/* Open output file, don't do work on input if corresponding output exists *
-            File outputFile = new File(outputDir+File.separator+countFileNames[fileNum]);
-            if(outputFile.isFile()){
-                System.out.println(
-                        "An output file "+countFileNames[fileNum]+"\n"+ 
-                        " already exists in the output directory for file "+fastqFiles[fileNum]+".  Skipping.");
-                continue;
-            }
-            
-//N.K code            System.out.println("Reading FASTQ files: "+fastqFiles[fileNum]+", "+read2Name);
-            System.out.println("Reading FASTQ file: "+fastqFiles[fileNum]);
- System.out.println("fileNum IS: "+fileNum); //DEBUG 
- 			
- 			String[] filenameField=fastqFiles[fileNum].getName().split("_");
-System.out.println("fileField LEN IS: "+filenameField.length); //DEBUG 
-
-			System.arraycopy(filenameField, 0, fileReadInfo[0][fileNum], 0, filenameField.length);
-        }
-		//DEBUG	
-*/
 		
 		String[][][] filenameField= new String[2][5][];
 		int fileNum=0;
@@ -306,14 +250,14 @@ System.out.println("OLD enzyme is:"+ enzyme);
 String[] hcEnzyme={"PstI-MspI","MspI-PstI"};
 String[] hcKeyFiles={"GBS.key","GBS2.key"};
 		
- 			TagCountMutable [] theTC=new TagCountMutable [3];
+ 			TagCountMutable [] theTC=new TagCountMutable [2];
  			/* 
  			 * Reads the key file and store the expected barcodes for a lane.
  			 * Set to a length of 2 to hold up to two key files' worth of information.
  			 * The convention will be that the forward read is [0] and the reverse
  			 * read is[1]
  			 */
-            ParseBarcodeRead [] thePBR = new ParseBarcodeRead [3];  
+            ParseBarcodeRead [] thePBR = new ParseBarcodeRead [2];  
           //  String[][] taxaNames=new String[2][];
             
             for(int b=0;b<indexStartOfRead2;b++){
@@ -390,20 +334,12 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                goodBarcodedReads = 0;
 	                goodBarcodedForwardReads = 0;
 	                goodBarcodedReverseReads = 0;
-	                ReadBarcodeResult [] rr = new ReadBarcodeResult [3];
-	                int alCount = 0;
+	                ReadBarcodeResult [] rr = new ReadBarcodeResult [2];
+	                int hashCount = 0;
 	                
-	                try {
-	                    PrintWriter out = new PrintWriter(
-	                    		new BufferedWriter(
-	                    				new FileWriter(
-	                    						outputDir+File.separator+countFileNames[b]+"-"+countFileNames[b+indexStartOfRead2]+".txt", true)));
-	                    
-	                    
 	                while ((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null 
 	                		&& goodBarcodedReads < maxGoodReads) {
-	          //      	if(bothGood<10000){
-	                    currLine++;
+	                	currLine++;
 	                    try{
 	                        //The quality score is every 4th line; the sequence is every 4th line starting from the 2nd.
 	                        if((currLine+2)%4==0){
@@ -425,15 +361,19 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                                theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
 	                                theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
 	                                
-	                                String alTemp=stitch(rr[0].toString(), rr[0].toString());
-	                                al.add(alTemp);
-	                                alCount=al.size();
-	                                out.println(alTemp);
+	                                String concatenation=stitch(rr[0].toString(), rr[1].toString());
 	                                
-
-	                           //     System.out.println(rr[0].toString());
-	                            //    System.out.println(rr[1].toString()+"\n");
-
+	                                //Check if sequence is part of HashMap
+	                                if(pairCount.containsKey(concatenation)){
+	                                	// get occurences, increment it, set new value
+	                                	pairCount.put(concatenation, pairCount.get(concatenation)+1);
+	                                }else{
+	                                	// add first occurence
+	                                	pairCount.put(concatenation, 1);
+	                                }
+	                                
+	                                hashCount = pairCount.size();
+	                              
 	                            }
 	                            else if (rr[0] != null){
 	                                goodBarcodedReads++;
@@ -445,9 +385,9 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                                goodBarcodedReverseReads++;
 	                               theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
 	                            }
-	                            if (allReads % 1000000 == 0) {
+	                            if (allReads % 10000000 == 0) {
 	                            	reportStats(bothGood, goodBarcodedForwardReads, goodBarcodedReverseReads, 
-	                            			goodBarcodedReads, allReads, alCount);
+	                            			goodBarcodedReads, allReads, hashCount);
 	                            }
 	                        }
 	                    }catch(NullPointerException e){
@@ -457,20 +397,25 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                    }
 	                    
 	                } 
+	                try {
+	                    PrintWriter out = new PrintWriter(
+	                    		new BufferedWriter(
+	                    				new FileWriter(
+	                    						outputDir+File.separator+countFileNames[b]+"-"+countFileNames[b+indexStartOfRead2]+".txt", true)));
+	                for(String h: pairCount.keySet()){
+	                	String key = h.toString();
+	                	String value = pairCount.get(h).toString();
+	                	out.println(key+ "\t" + value);
+	                }
 	                out.close();
+	                pairCount.clear();
 	                }catch (IOException e) {
 	                    //oh noes!
 	                	;
 	                }
 	                
-	                
-	              //  }
-	               // 	else{
-	               // 		goodBarcodedReads=maxGoodReads;
-	               // 	}
-	                
                 reportStats(bothGood, goodBarcodedForwardReads, goodBarcodedReverseReads, 
-            			goodBarcodedReads, maxGoodReads, alCount);
+            			goodBarcodedReads, allReads, hashCount);
                 System.out.println("Timing process (sorting, collapsing, and writing TagCount to file).");
                 timePoint1 = System.currentTimeMillis();
                 theTC[0].collapseCounts();
@@ -484,7 +429,6 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
                 theTC[0]=null;
                 theTC[1]=null;
                 
-                al.clear();
                 fileNum++;
             
 		        } catch(Exception e) {
@@ -517,12 +461,9 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     	System.out.println("The number of good forward and reverse reads is: "+both+" (~"+formatter.format(percentBoth)+"%)");
     	System.out.println("The number of total good forward reads is: "+forward+" (~"+formatter.format(percentForward)+"%)");
     	System.out.println("The number of total good reverse reads is: "+reverse+" (~"+formatter.format(percentReverse)+"%)");
-    	System.out.println("ArrayList count is "+listCount+"\n");
+    	System.out.println("HashMap size is "+listCount+"\n");
     	System.out.println("Percentages are only an approximation\n");  
-    	
-    	
-    	
-    }
+     }
     
     /**
      * Prints a message to the console indicating there is a problem with the file name structure
