@@ -43,7 +43,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
     String keyfile=null;
     String enzyme = null;
     //int maxGoodReads = 200000000;
-    int maxGoodReads = 150000000;
+    int maxGoodReads = 2000000;
     int minCount =1;
     String outputDir=null;
 
@@ -130,11 +130,10 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
     public static void countTags(String keyFileS, String enzyme, String fastqDirectory, String outputDir, int maxGoodReads, int minCount) {
         BufferedReader br1;
         BufferedReader br2;;
-//COUNTER VARIABLE
-        String[] countFileNames = null;
-        HashMap <String, Integer> pairCount = new HashMap<String, Integer>();
-        String [] hashFileNames = null;
 
+        String[] countFileNames = null;  // counter variable
+        HashMap <String, Integer> pairCount = new HashMap<String, Integer>(); // stores paired sequences to write to file
+        ArrayList <String> hashFileNames = new ArrayList<String>(); // stores names of files resulting from HashMap output
         
         /* Grab ':' delimited key files */
         String[] tempFileList = keyFileS.split(":");
@@ -177,15 +176,9 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
         int numFastqFiles = fastqFiles.length;  //number of files   
         int indexStartOfRead2 = numFastqFiles/2;  // index of where paired file should start, also number of pairs
         
-        hashFileNames = new String[indexStartOfRead2]; 
-        
-      //this chunk probably needs to be a separate private method
-        if (indexStartOfRead2 % 2 !=0){
-        System.out.println("There are an odd number of files so there won't be correct pairing"); 	
-        }
-        
-System.out.println("indexStartOfRead2 IS: "+indexStartOfRead2); //TESTING & DEBUG         
-		
+        // check for even number of files
+        checkForPairs(indexStartOfRead2);
+                         
 		/* sets mutildimensional array for 
 		 * [x][][] 2 bays for forward and reverse reads
 		 * [][x][] number of files expected for each directional read
@@ -234,7 +227,7 @@ System.out.println("indexStartOfRead2 IS: "+indexStartOfRead2); //TESTING & DEBU
 		}
 		
 fileNum=0;
-//DEBUG print all array contents
+/*//DEBUG print all array contents
 for(int left=0;left<2;left++){
 	for(int mid=0;mid<indexStartOfRead2;mid++){
 		for(int right=0;right<5;right++){
@@ -242,7 +235,7 @@ for(int left=0;left<2;left++){
 		}
 	}
 }
-
+*/
 //handle keyfiles and enzymes
 //2 arrays for manually inputing multiple enzymes and keys for testing
 System.out.println("OLD Key file is:"+ keyFileS);            
@@ -398,19 +391,25 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                    
 	                } 
 	                try {
+	                	String hashOutName = countFileNames[b]+"-"+countFileNames[b+indexStartOfRead2]+".txt";
+	                	
 	                    PrintWriter out = new PrintWriter(
 	                    		new BufferedWriter(
 	                    				new FileWriter(
-	                    						outputDir+File.separator+countFileNames[b]+"-"+countFileNames[b+indexStartOfRead2]+".txt", true)));
-	                for(String h: pairCount.keySet()){
-	                	String key = h.toString();
-	                	String value = pairCount.get(h).toString();
-	                	out.println(key+ "\t" + value);
-	                }
-	                out.close();
-	                pairCount.clear();
+	                    						outputDir+File.separator+hashOutName, true)));
+	                
+	                	hashFileNames.add(hashOutName);
+	                	
+	                	
+		                for(String h: pairCount.keySet()){
+		                	String key = h.toString();
+		                	String value = pairCount.get(h).toString();
+		                	out.println(key+ "\t" + value);
+		                }
+		                out.close();		// close PrintWriter
+		                pairCount.clear();  //force memory release before looping back through
 	                }catch (IOException e) {
-	                    //oh noes!
+	                	System.out.println(e.getMessage());
 	                	;
 	                }
 	                
@@ -425,7 +424,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
                 System.out.println("Process took " + (System.currentTimeMillis() - timePoint1) + " milliseconds.");
                 br1.close();
                 br2.close();
-                //attempting to free memory before looping back and getting OOM error falsely
+                //force memory release before looping back through
                 theTC[0]=null;
                 theTC[1]=null;
                 
@@ -436,8 +435,20 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 		            e.printStackTrace();
 		            System.out.println("Finished reading "+(fileNum+1)+" of "+fastqFiles.length+" sequence files.");
         			}
-            	
-            }
+			}
+            combineHashOutputFiles(hashFileNames, outputDir);
+        	
+    }
+    
+    /**
+     * Checks for an even number of files
+     * @param numberOfPairs is the number of pairs
+     */
+    private static void checkForPairs(int numberOfPairs){
+    	if (numberOfPairs % 2 !=0){
+    		System.out.println("There are an odd number of files so there won't be correct pairing"); 
+    		System.out.println("The number of files detected was "+numberOfPairs); 
+        }
     }
     
     /**
@@ -482,6 +493,61 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     	return tempStitch;
     }
     
+    private static void combineHashOutputFiles(ArrayList<String> names, String directoryInfo){
+    	
+    	String allSeq;
+    	int numberOfCounts=0;
+    	String [] arrayNames = names.toArray(new String[names.size()]);
+    	HashMap <String, Integer> hm = new HashMap<String, Integer>();
+    	
+    	for(int i=0; i<arrayNames.length; i++){
+    		
+    		BufferedReader hbr=null;
+    		String location = directoryInfo+File.separator+arrayNames[i];
+    		
+    		try{
+    			String lineRead;
+    			hbr=new BufferedReader(new FileReader(location));
+    			while ((lineRead = hbr.readLine()) != null){
+	    			 
+	    			 String splitline[] = lineRead.split("\t");
+	    			 allSeq = splitline[0];
+	    			 numberOfCounts = Integer.parseInt(splitline[1]);
+
+		    		//Check if sequence is part of HashMap
+		            if(hm.containsKey(allSeq)){
+		            	// get occurences, increment it, set new value
+		            	hm.put(lineRead, hm.get(lineRead)+numberOfCounts);
+		            }else{
+		            	// add first occurence
+		            	hm.put(allSeq, numberOfCounts);
+		    		}
+	    		 }
+    		}catch(IOException io) { 
+                System.out.println(io.getMessage());
+            }
+    		 
+    	}
+    	
+    	try {
+        	PrintWriter out = new PrintWriter(
+            		new BufferedWriter(
+            				new FileWriter(
+            						directoryInfo+File.separator+"Paired_End_Info.txt", true)));
+        
+        	for(String h: hm.keySet()){
+            	String key = h.toString();
+            	String value = hm.get(h).toString();
+            	out.println(key+ "\t" + value);
+            }
+            out.close();		// close PrintWriter
+            hm.clear();  //force memory release before looping back through
+        }catch (IOException e) {
+        	 System.out.println(e.getMessage());
+        	;
+        }
+    }
+    	    
     @Override
     public ImageIcon getIcon(){
        throw new UnsupportedOperationException("Not supported yet.");
