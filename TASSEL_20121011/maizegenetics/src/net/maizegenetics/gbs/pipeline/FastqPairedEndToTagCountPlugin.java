@@ -329,6 +329,10 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                goodBarcodedReverseReads = 0;
 	                ReadBarcodeResult [] rr = new ReadBarcodeResult [2];
 	                int hashCount = 0;
+	                String tempSeqF=null;
+	                String tempSeqR=null;
+	                String tempIdF=null;
+	                String tempIdR=null;
 	                
 	                while ((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null 
 	                		&& goodBarcodedReads < maxGoodReads) {
@@ -354,7 +358,12 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                                theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
 	                                theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
 	                                
-	                                String concatenation=stitch(rr[0].toString(), rr[1].toString());
+	                                tempSeqF=rr[0].toString().substring(0,64);
+	                                tempIdF = rr[0].toString().substring(65);
+	                                tempSeqR=rr[1].toString().substring(0,64);
+	                                tempIdR = rr[1].toString().substring(65);
+	                                
+	                                String concatenation=stitch(tempSeqF, tempSeqR, tempIdF, tempIdR);
 	                                
 	                                //Check if sequence is part of HashMap
 	                                if(pairCount.containsKey(concatenation)){
@@ -436,7 +445,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 		            System.out.println("Finished reading "+(fileNum+1)+" of "+fastqFiles.length+" sequence files.");
         			}
 			}
-            combineHashOutputFiles(hashFileNames, outputDir);
+          //  combineHashOutputFiles(hashFileNames, outputDir);
         	
     }
     
@@ -488,11 +497,11 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 		System.out.println("OR There is already a file in the ouput folder of the same name");
     }
     
-    private static String stitch(String forward, String reverse){
-    	String tempStitch=forward+","+reverse;
+    private static String stitch(String forward, String reverse, String idF, String idR){
+    	String tempStitch=forward+","+reverse+"\t"+idF+"\t"+idR;
     	return tempStitch;
     }
-    
+/*    
     private static void combineHashOutputFiles(ArrayList<String> names, String directoryInfo){
     	
     	String allSeq;
@@ -547,7 +556,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
         	;
         }
     }
-    	    
+*/    	    
     @Override
     public ImageIcon getIcon(){
        throw new UnsupportedOperationException("Not supported yet.");
