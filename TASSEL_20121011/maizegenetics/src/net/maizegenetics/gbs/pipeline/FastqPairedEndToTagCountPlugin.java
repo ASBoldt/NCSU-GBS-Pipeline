@@ -516,6 +516,12 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     		BufferedReader hbr=null;
     		String location = directoryInfo+File.separator+arrayNames[i];
     		
+    		if(i!=0){
+    			//reporter
+    			System.out.println("The first file has been processed");
+    			System.out.println("The number of unique sequences at this point "+ hma.size());
+    		}
+    		
     		try{
     			String lineRead;
     			hbr=new BufferedReader(new FileReader(location));
@@ -526,27 +532,40 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	    			 ids = splitline[1]+"\t"+splitline[2];
 	    			 numberOfCounts=Integer.parseInt(splitline[3]);
 	    			 
-		    		//Check if sequence is part of HashMap
-		            if(hma.containsKey(allSeq)){
-		            	// get occurences, increment it, set new value
-		            	tempArrayList = hma.get(allSeq);
-		            	tempArrayList.set(0, tempArrayList.get(0)+numberOfCounts);
-		            	tempArrayList.set(1,tempArrayList.get(1)+"\t"+ids);
-		            	hma.put(allSeq, tempArrayList);		            	
-		            }else{
-		            	// add first occurence
+	    			 /*
+	    			  * If this is the first file, add everything as is since uniqueness
+	    			  * in each separate files is already determined.  This will cut down on
+	    			  * needless comparisons
+	    			  */
+	    			 if(i=0){
+	    				// add everything from first file
 		            	tempArrayList.add(Integer.toString(numberOfCounts));
 		            	tempArrayList.add(ids);
 		            	hma.put(allSeq, tempArrayList);
-		            }
-		         tempArrayList.clear();
+	    			 }
+	    			 else{
+	    				 //Check if sequence is part of HashMap
+	    				 if(hma.containsKey(allSeq) ){
+	 		            	// get occurences, increment counter, set new value
+	 		            	tempArrayList = hma.get(allSeq);
+	 		            	tempArrayList.set(0, tempArrayList.get(0)+numberOfCounts);
+	 		            	tempArrayList.set(1,tempArrayList.get(1)+"\t"+ids);
+	 		            	hma.put(allSeq, tempArrayList);		            	
+	 		            }else{
+	 		            	// add new unique line
+	 		            	tempArrayList.add(Integer.toString(numberOfCounts));
+	 		            	tempArrayList.add(ids);
+	 		            	hma.put(allSeq, tempArrayList);
+	 		            }
+	    			 }
 	    		 }
     		}catch(IOException io) { 
                 System.out.println(io.getMessage());
-            }
-    		 
+            }	 
     	}
-    	
+    	//Reporter
+    	System.out.println("Start writing to output file");
+    	System.out.println("The number of lines to be sent to the output file is " + hma.size());
     	try {
         	PrintWriter out = new PrintWriter(
             		new BufferedWriter(
@@ -559,7 +578,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
             	out.println(key+ "\t" + value.get(0)+"\t"+value.get(1));
             }
             out.close();		// close PrintWriter
-            hma.clear();  //force memory release before looping back through
+            hma.clear();  //force memory release 
         }catch (IOException e) {
         	 System.out.println(e.getMessage());
         	;
