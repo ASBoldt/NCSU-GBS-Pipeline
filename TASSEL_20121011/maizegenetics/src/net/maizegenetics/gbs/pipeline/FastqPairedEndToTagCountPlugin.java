@@ -445,7 +445,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 		            System.out.println("Finished reading "+(fileNum+1)+" of "+fastqFiles.length+" sequence files.");
         			}
 			}
-          //  combineHashOutputFiles(hashFileNames, outputDir);
+            combineHashOutputFiles(hashFileNames, outputDir);
         	
     }
     
@@ -501,13 +501,15 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     	String tempStitch=forward+","+reverse+"\t"+idF+"\t"+idR;
     	return tempStitch;
     }
-/*    
+    
     private static void combineHashOutputFiles(ArrayList<String> names, String directoryInfo){
     	
     	String allSeq;
+    	String ids;
     	int numberOfCounts=0;
     	String [] arrayNames = names.toArray(new String[names.size()]);
-    	HashMap <String, Integer> hm = new HashMap<String, Integer>();
+    	HashMap <String, ArrayList<String>> hma = new HashMap<String, ArrayList<String>>();
+    	ArrayList <String> tempArrayList = new ArrayList<String>();
     	
     	for(int i=0; i<arrayNames.length; i++){
     		
@@ -521,23 +523,30 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	    			 
 	    			 String splitline[] = lineRead.split("\t");
 	    			 allSeq = splitline[0];
-	    			 numberOfCounts = Integer.parseInt(splitline[1]);
-
+	    			 ids = splitline[1]+"\t"+splitline[2];
+	    			 numberOfCounts=Integer.parseInt(splitline[3]);
+	    			 
 		    		//Check if sequence is part of HashMap
-		            if(hm.containsKey(allSeq)){
+		            if(hma.containsKey(allSeq)){
 		            	// get occurences, increment it, set new value
-		            	hm.put(lineRead, hm.get(lineRead)+numberOfCounts);
+		            	tempArrayList = hma.get(allSeq);
+		            	tempArrayList.set(0, tempArrayList.get(0)+numberOfCounts);
+		            	tempArrayList.set(1,tempArrayList.get(1)+"\t"+ids);
+		            	hma.put(allSeq, tempArrayList);		            	
 		            }else{
 		            	// add first occurence
-		            	hm.put(allSeq, numberOfCounts);
-		    		}
+		            	tempArrayList.add(Integer.toString(numberOfCounts));
+		            	tempArrayList.add(ids);
+		            	hma.put(allSeq, tempArrayList);
+		            }
+		         tempArrayList.clear();
 	    		 }
     		}catch(IOException io) { 
                 System.out.println(io.getMessage());
             }
     		 
     	}
-    	
+    	/*
     	try {
         	PrintWriter out = new PrintWriter(
             		new BufferedWriter(
@@ -554,9 +563,9 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
         }catch (IOException e) {
         	 System.out.println(e.getMessage());
         	;
-        }
+        }*/
     }
-*/    	    
+    	    
     @Override
     public ImageIcon getIcon(){
        throw new UnsupportedOperationException("Not supported yet.");
