@@ -546,24 +546,24 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
             }
     		 
     	}
-    	/*
+    	
     	try {
         	PrintWriter out = new PrintWriter(
             		new BufferedWriter(
             				new FileWriter(
             						directoryInfo+File.separator+"Paired_End_Info.txt", true)));
         
-        	for(String h: hm.keySet()){
+        	for(String h: hma.keySet()){
             	String key = h.toString();
-            	String value = hm.get(h).toString();
-            	out.println(key+ "\t" + value);
+            	ArrayList value = new ArrayList(hma.get(h));
+            	out.println(key+ "\t" + value.get(0)+"\t"+value.get(1));
             }
             out.close();		// close PrintWriter
-            hm.clear();  //force memory release before looping back through
+            hma.clear();  //force memory release before looping back through
         }catch (IOException e) {
         	 System.out.println(e.getMessage());
         	;
-        }*/
+        }
     }
     	    
     @Override
