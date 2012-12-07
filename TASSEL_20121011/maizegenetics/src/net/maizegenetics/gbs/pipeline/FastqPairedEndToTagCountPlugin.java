@@ -519,15 +519,16 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     		BufferedReader hbr=null;
     		String location = directoryInfo+File.separator+arrayNames[i];
     		
-    		if(i!=0){
-    			//reporter
-    			System.out.println("The first file has been processed");
-    			System.out.println("The number of unique sequences at this point "+ hma.size());
-    		}
-    		
+    //		if(i!=0){
+    //			//reporter
+    //			System.out.println("The first file has been processed");
+    //			System.out.println("The number of unique sequences at this point "+ hma.size());
+    //		}
+    		int tempCount = 0;
     		try{
     			String lineRead;
     			hbr=new BufferedReader(new FileReader(location));
+    		//	while ((lineRead = hbr.readLine()) != null && tempCount<1000){
     			while ((lineRead = hbr.readLine()) != null){
 	    			 
 	    			 String splitline[] = lineRead.split("\t");
@@ -540,27 +541,36 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	    			  * in each separate files is already determined.  This will cut down on
 	    			  * needless comparisons
 	    			  */
-	    			 if(i==0){
+	    			/* if(i==0){
 	    				// add everything from first file
 		            	tempArrayList.add(Integer.toString(numberOfCounts));
 		            	tempArrayList.add(ids);
 		            	hma.put(allSeq, tempArrayList);
 	    			 }
-	    			 else{
+	    			 else{*/
 	    				 //Check if sequence is part of HashMap
 	    				 if(hma.containsKey(allSeq) ){
 	 		            	// get occurences, increment counter, set new value
-	 		            	tempArrayList = hma.get(allSeq);
-	 		            	tempArrayList.set(0, tempArrayList.get(0)+numberOfCounts);
+	 		            	tempArrayList = new ArrayList(hma.get(allSeq));
+	 		//            	System.out.println("tempArrayList 0 is " +tempArrayList.get(0).toString());
+	 		 //           	System.out.println("tempArrayList 1 is " +tempArrayList.get(1).toString());
+	 		            	tempArrayList.set(0, Integer.toString(Integer.parseInt(tempArrayList.get(0))+numberOfCounts));
 	 		            	tempArrayList.set(1,tempArrayList.get(1)+"\t"+ids);
-	 		            	hma.put(allSeq, tempArrayList);		            	
+	 		//            	System.out.println("tempArrayList 0 is " +tempArrayList.get(0).toString());
+	 		//            	System.out.println("tempArrayList 1 is " +tempArrayList.get(1).toString());
+	 		            	hma.put(allSeq, tempArrayList);		
 	 		            }else{
 	 		            	// add new unique line
+	 		            	tempArrayList = new ArrayList<String>();
 	 		            	tempArrayList.add(Integer.toString(numberOfCounts));
 	 		            	tempArrayList.add(ids);
+	 		 //           	System.out.println("tempArrayList 0 is " +tempArrayList.get(0).toString());
+	 		 //           	System.out.println("tempArrayList 1 is " +tempArrayList.get(1).toString());
 	 		            	hma.put(allSeq, tempArrayList);
 	 		            }
-	    			 }
+	    				 tempCount++;
+	    	//			 System.out.println("TempCount is " +tempCount);
+	    			// }
 	    		 }
     		}catch(IOException io) { 
                 System.out.println(io.getMessage());
@@ -570,21 +580,28 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     	System.out.println("Start writing to output file");
     	System.out.println("The number of lines to be sent to the output file is " + hma.size());
     	try {
+    		ArrayList value = new ArrayList();
         	PrintWriter out = new PrintWriter(
             		new BufferedWriter(
             				new FileWriter(
             						directoryInfo+File.separator+"Paired_End_Info.txt", true)));
-        
+        int temp2=0;
         	for(String h: hma.keySet()){
             	String key = h.toString();
-            	ArrayList value = new ArrayList(hma.get(h));
-            	out.println(key+ "\t" + value.get(0)+"\t"+value.get(1));
+            	value= new ArrayList(hma.get(h));
+            	out.println(key+ "\t" + value.get(0).toString()+"\t"+value.get(1).toString());
+            	temp2++;
+            	if(temp2%10000 == 0){
+            	System.out.println(temp2);
+            	}
             }
+        	System.out.println("HERE 1");
             out.close();		// close PrintWriter
+            System.out.println("HERE 2");
             hma.clear();  //force memory release 
+            System.out.println("HERE 3");
         }catch (IOException e) {
         	 System.out.println(e.getMessage());
-        	;
         }
     }
     	    
