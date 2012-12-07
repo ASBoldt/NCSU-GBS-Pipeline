@@ -537,7 +537,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	    			  * in each separate files is already determined.  This will cut down on
 	    			  * needless comparisons
 	    			  */
-	    			 if(i=0){
+	    			 if(i==0){
 	    				// add everything from first file
 		            	tempArrayList.add(Integer.toString(numberOfCounts));
 		            	tempArrayList.add(ids);
