@@ -416,6 +416,9 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 		                	out.println(key+ "\t" + value);
 		                }
 		                out.close();		// close PrintWriter
+		                //reporter
+		                System.out.println("The number of lines added to " + hashOutName +" is " +pairCount.size());
+		                
 		                pairCount.clear();  //force memory release before looping back through
 	                }catch (IOException e) {
 	                	System.out.println(e.getMessage());
