@@ -334,6 +334,9 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                String tempIdF=null;
 	                String tempIdR=null;
 	                
+	                System.out.println("Begin reading raw sequence files");
+	                timePoint1 = System.currentTimeMillis();
+	                
 	                while ((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null 
 	                		&& goodBarcodedReads < maxGoodReads) {
 	                	currLine++;
@@ -399,7 +402,10 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                    }
 	                    
 	                } 
+	                reportTime(timePoint1);
 	                try {
+	                	
+	                	long timeTemp = System.currentTimeMillis();
 	                	String hashOutName = countFileNames[b]+"-"+countFileNames[b+indexStartOfRead2]+".txt";
 	                	
 	                    PrintWriter out = new PrintWriter(
@@ -420,6 +426,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 		                System.out.println("The number of lines added to " + hashOutName +" is " +pairCount.size());
 		                
 		                pairCount.clear();  //force memory release before looping back through
+		                reportTime(timePoint1);
 	                }catch (IOException e) {
 	                	System.out.println(e.getMessage());
 	                	;
@@ -433,7 +440,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
                 theTC[1].collapseCounts();
                 theTC[0].writeTagCountFile(outputDir+File.separator+countFileNames[b], FilePacking.Bit, minCount);
                 theTC[1].writeTagCountFile(outputDir+File.separator+countFileNames[b+indexStartOfRead2], FilePacking.Bit, minCount);
-                System.out.println("Process took " + (System.currentTimeMillis() - timePoint1) + " milliseconds.");
+                reportTime(timePoint1);
                 br1.close();
                 br2.close();
                 //force memory release before looping back through
@@ -507,77 +514,62 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     
     private static void combineHashOutputFiles(ArrayList<String> names, String directoryInfo){
     	
-    	String allSeq;
-    	String ids;
+    	String allSeq;	// sequence
+    	String ids;		// concatenation of select information from each read identifier
+    	String r1Ids[];	// split id information from read 1
+    	String r2Ids[];	// split id information from read 2
     	int numberOfCounts=0;
     	String [] arrayNames = names.toArray(new String[names.size()]);
     	HashMap <String, ArrayList<String>> hma = new HashMap<String, ArrayList<String>>();
     	ArrayList <String> tempArrayList = new ArrayList<String>();
+  		int tempCount = 0;  //reporter variable
+    	long tempTime=0;	//reporter variable
+    	
+		tempTime = System.currentTimeMillis();
+		System.out.println("\ncombineHashOutputFiles: Gathering information from individual files");
     	
     	for(int i=0; i<arrayNames.length; i++){
     		
     		BufferedReader hbr=null;
-    		String location = directoryInfo+File.separator+arrayNames[i];
+    		String location = directoryInfo+File.separator+arrayNames[i];    		
     		
-    //		if(i!=0){
-    //			//reporter
-    //			System.out.println("The first file has been processed");
-    //			System.out.println("The number of unique sequences at this point "+ hma.size());
-    //		}
-    		int tempCount = 0;
     		try{
     			String lineRead;
     			hbr=new BufferedReader(new FileReader(location));
-    		//	while ((lineRead = hbr.readLine()) != null && tempCount<1000){
+    			
     			while ((lineRead = hbr.readLine()) != null){
 	    			 
 	    			 String splitline[] = lineRead.split("\t");
 	    			 allSeq = splitline[0];
-	    			 ids = splitline[1]+"\t"+splitline[2];
+	    			 r1Ids = splitline[1].split(":");
+	    			 r2Ids = splitline[2].split(":");
+	    			 ids = r1Ids[0]+":"+r1Ids[2]+":"+r1Ids[3]+":"+r1Ids[1]+":"+r2Ids[1];
 	    			 numberOfCounts=Integer.parseInt(splitline[3]);
 	    			 
-	    			 /*
-	    			  * If this is the first file, add everything as is since uniqueness
-	    			  * in each separate files is already determined.  This will cut down on
-	    			  * needless comparisons
-	    			  */
-	    			/* if(i==0){
-	    				// add everything from first file
-		            	tempArrayList.add(Integer.toString(numberOfCounts));
-		            	tempArrayList.add(ids);
-		            	hma.put(allSeq, tempArrayList);
-	    			 }
-	    			 else{*/
 	    				 //Check if sequence is part of HashMap
 	    				 if(hma.containsKey(allSeq) ){
 	 		            	// get occurences, increment counter, set new value
 	 		            	tempArrayList = new ArrayList(hma.get(allSeq));
-	 		//            	System.out.println("tempArrayList 0 is " +tempArrayList.get(0).toString());
-	 		 //           	System.out.println("tempArrayList 1 is " +tempArrayList.get(1).toString());
 	 		            	tempArrayList.set(0, Integer.toString(Integer.parseInt(tempArrayList.get(0))+numberOfCounts));
-	 		            	tempArrayList.set(1,tempArrayList.get(1)+"\t"+ids);
-	 		//            	System.out.println("tempArrayList 0 is " +tempArrayList.get(0).toString());
-	 		//            	System.out.println("tempArrayList 1 is " +tempArrayList.get(1).toString());
+	 		            	tempArrayList.set(1,tempArrayList.get(1)+"\t"+stripRedundant(ids));
 	 		            	hma.put(allSeq, tempArrayList);		
 	 		            }else{
 	 		            	// add new unique line
 	 		            	tempArrayList = new ArrayList<String>();
 	 		            	tempArrayList.add(Integer.toString(numberOfCounts));
 	 		            	tempArrayList.add(ids);
-	 		 //           	System.out.println("tempArrayList 0 is " +tempArrayList.get(0).toString());
-	 		 //           	System.out.println("tempArrayList 1 is " +tempArrayList.get(1).toString());
 	 		            	hma.put(allSeq, tempArrayList);
 	 		            }
-	    				 tempCount++;
-	    	//			 System.out.println("TempCount is " +tempCount);
-	    			// }
 	    		 }
     		}catch(IOException io) { 
                 System.out.println(io.getMessage());
-            }	 
+            }
     	}
+    	reportTime(tempTime);
+    	
     	//Reporter
-    	System.out.println("Start writing to output file");
+    	tempTime = System.currentTimeMillis();
+    	System.out.println("\ncombineHashOutputFiles: Start writing to output file");
     	System.out.println("The number of lines to be sent to the output file is " + hma.size());
     	try {
     		ArrayList value = new ArrayList();
@@ -585,24 +577,55 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
             		new BufferedWriter(
             				new FileWriter(
             						directoryInfo+File.separator+"Paired_End_Info.txt", true)));
-        int temp2=0;
+        tempCount=0;
         	for(String h: hma.keySet()){
             	String key = h.toString();
             	value= new ArrayList(hma.get(h));
             	out.println(key+ "\t" + value.get(0).toString()+"\t"+value.get(1).toString());
-            	temp2++;
-            	if(temp2%10000 == 0){
-            	System.out.println(temp2);
+            	tempCount++;
+            	if(tempCount%1000000 == 0){
+            	System.out.println(tempCount);
             	}
             }
-        	System.out.println("HERE 1");
             out.close();		// close PrintWriter
-            System.out.println("HERE 2");
             hma.clear();  //force memory release 
-            System.out.println("HERE 3");
         }catch (IOException e) {
         	 System.out.println(e.getMessage());
         }
+    	reportTime(tempTime);
+    }
+    
+    private static void reportTime(long start){
+    	long end = System.currentTimeMillis();
+    	long time = end-start; //milliseconds
+    	int sec = 0;
+    	int mins = 0;
+    	int hours = 0;
+    	
+    	if(time>=1000){
+    		if(time>=60000){
+    			if(time>=3600000){
+    				hours = (int)time/3600000;
+    				mins = Math.round((time % 3600000)*60);
+    				System.out.println("Process completed in " +hours + " hours and "+ mins + " minutes\n");
+    			}else{
+    				mins = (int)time / 60000;
+    				sec = Math.round((time / 60000)*60);
+    				System.out.println("Process completed in " +mins + " minutes and "+ sec + " seconds\n");
+    			}
+    		}else{
+    			sec = Math.round((time / 1000));
+				System.out.println("Process completed in " +sec + " seconds\n");
+    		}
+    	}else{
+    		System.out.println("Process completed in " +time + " milliseconds\n");
+    	}
+    }
+    
+    private static String stripRedundant(String longID){
+    	String tempID[]=longID.split(":");
+    	String newID = tempID[2]+":"+tempID[3]+":"+tempID[4];
+    	return newID;
     }
     	    
     @Override
