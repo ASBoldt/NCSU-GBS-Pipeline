@@ -163,7 +163,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             System.out.println("Using the following FASTQ files:");
             
             
-//COUNTS HOW MANY FILES THERE ARE IN THE INPUT            
+            //COUNTS HOW MANY FILES THERE ARE IN THE INPUT            
             countFileNames = new String[fastqFiles.length];
             for (int i=0; i<fastqFiles.length; i++) {
                 countFileNames[i] = fastqFiles[i].getName().replaceAll
@@ -427,7 +427,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 		                System.out.println("The number of lines added to " + hashOutName +" is " +pairCount.size());
 		                
 		                pairCount.clear();  //force memory release before looping back through
-		                reportTime(timePoint1);
+		                reportTime(timeTemp);
 	                }catch (IOException e) {
 	                	System.out.println(e.getMessage());
 	                	;
@@ -485,15 +485,20 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     	float percentBoth = 100*((float)both/allGood);
     	float percentForward = 100*((float)forward/allGood);
     	float percentReverse = 100*((float)reverse/allGood);
+    	float percentUnique = 100*((float)listCount/allGood);
     	DecimalFormat formatter = new DecimalFormat("00.0");
     	
     	System.out.println("Total Reads:" + totalReads);
-    	System.out.println("The number of good lines encountered so far is "+allGood+" (~"+formatter.format(percentAll)+"%)");
-    	System.out.println("The number of good forward and reverse reads is: "+both+" (~"+formatter.format(percentBoth)+"%)");
-    	System.out.println("The number of total good forward reads is: "+forward+" (~"+formatter.format(percentForward)+"%)");
-    	System.out.println("The number of total good reverse reads is: "+reverse+" (~"+formatter.format(percentReverse)+"%)");
-    	System.out.println("HashMap size is "+listCount+"\n");
-    	System.out.println("Percentages are only an approximation\n");  
+    	System.out.println("The number of good lines encountered so far is "+allGood+" ("+formatter.format(percentAll)+
+    			"% of total reads)");
+    	System.out.println("The number of good forward reads in this file is: "+forward+" ("+formatter.format(percentForward)+
+    			"% of all good lines read)");
+    	System.out.println("The number of good reverse reads in this file is: "+reverse+" ("+formatter.format(percentReverse)+
+    			"% of all good lines read)");
+    	System.out.println("The number of good forward and reverse reads in this file is: "+both+" ("+formatter.format(percentBoth)+
+    			"% of all good lines read)");
+    	System.out.println("The number of unique pairs of good forward and reverse sequence in this file is "+listCount+
+    			" ("+formatter.format(percentUnique)+"% of all good lines read\n");
      }
     
     /**
@@ -508,27 +513,45 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 		System.out.println("OR There is already a file in the ouput folder of the same name");
     }
     
+    /**
+     * Take both sequence and id information from the raw sequence file and concatenate them
+     * @param forward - the forward sequence
+     * @param reverse - the reverse sequence
+     * @param idF - the identification and summary information from the forward sequence
+     * @param idR - the identification and summary information from the reverse sequence
+     * @return - a string concatenation of the sequences and id information with formatting elements
+     */
     private static String stitch(String forward, String reverse, String idF, String idR){
     	String tempStitch=forward+","+reverse+"\t"+idF+"\t"+idR;
     	return tempStitch;
     }
     
+    /**
+     * Combines the HashMap output text files into one summary text file.  The expectation is that
+     * incoming files will be tab delimited.
+     * @param names - names of the files to process
+     * @param directoryInfo - system directory information
+     */
     private static void combineHashOutputFiles(ArrayList<String> names, String directoryInfo){
     	
     	String allSeq;	// sequence
     	String ids;		// concatenation of select information from each read identifier
     	String r1Ids[];	// split id information from read 1
     	String r2Ids[];	// split id information from read 2
-    	int numberOfCounts=0;
-    	String [] arrayNames = names.toArray(new String[names.size()]);
+    	int numberOfCounts=0; // number of times a sequence has been observed
+    	String [] arrayNames = names.toArray(new String[names.size()]); // copy list of files to process
+    	// the following HashMap allows for one key (the sequence string) to hold 
+    	// many values (id infomation) via the ArrayList
     	HashMap <String, ArrayList<String>> hma = new HashMap<String, ArrayList<String>>();
-    	ArrayList <String> tempArrayList = new ArrayList<String>();
+    	ArrayList <String> tempArrayList = new ArrayList<String>(); // holds information before addition to HashMap
   		int tempCount = 0;  //reporter variable
     	long tempTime=0;	//reporter variable
     	
+    	//Reporter
 		tempTime = System.currentTimeMillis();
 		System.out.println("\ncombineHashOutputFiles: Gathering information from individual files");
     	
+		// process all the files
     	for(int i=0; i<arrayNames.length; i++){
     		
     		BufferedReader hbr=null;
@@ -540,12 +563,13 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     			
     			while ((lineRead = hbr.readLine()) != null){
 	    			 
-	    			 String splitline[] = lineRead.split("\t");
-	    			 allSeq = splitline[0];
-	    			 r1Ids = splitline[1].split(":");
-	    			 r2Ids = splitline[2].split(":");
-	    			 ids = r1Ids[0]+":"+r1Ids[2]+":"+r1Ids[3]+":"+r1Ids[1]+":"+r2Ids[1];
-	    			 numberOfCounts=Integer.parseInt(splitline[3]);
+	    			 String splitline[] = lineRead.split("\t"); // parse infomation from incoming file
+	    			 allSeq = splitline[0];		//set the sequence
+	    			 r1Ids = splitline[1].split(":");		// set ID information from read1 files (forward)
+	    			 r2Ids = splitline[2].split(":");		// set ID information from read2 files (reverse)
+	    			 // reorganize and consolidate ID information
+	    			 ids = r1Ids[0]+":"+r1Ids[2]+":"+r1Ids[3]+":"+r1Ids[1]+":"+r2Ids[1]; 
+	    			 numberOfCounts=Integer.parseInt(splitline[3]); // copy the sequence count
 	    			 
 	    				 //Check if sequence is part of HashMap
 	    				 if(hma.containsKey(allSeq) ){
@@ -566,12 +590,12 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
                 System.out.println(io.getMessage());
             }
     	}
-    	reportTime(tempTime);
-    	
-    	//Reporter
-    	tempTime = System.currentTimeMillis();
+    	// Reporter
+    	reportTime(tempTime);    	
+    	tempTime = System.currentTimeMillis(); 
     	System.out.println("\ncombineHashOutputFiles: Start writing to output file");
     	System.out.println("The number of lines to be sent to the output file is " + hma.size());
+    	
     	try {
     		ArrayList value = new ArrayList();
         	PrintWriter out = new PrintWriter(
@@ -584,8 +608,9 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
             	value= new ArrayList(hma.get(h));
             	out.println(key+ "\t" + value.get(0).toString()+"\t"+value.get(1).toString());
             	tempCount++;
+            	// send update to console so user gets status update
             	if(tempCount%1000000 == 0){
-            	System.out.println(tempCount);
+            	System.out.println(tempCount+"lines written to file");
             	}
             }
             out.close();		// close PrintWriter
@@ -595,7 +620,13 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
         }
     	reportTime(tempTime);
     }
-    
+    /**
+     * A reporter method that takes in a millisecond start time and processes
+     * it to a friendlier hour, minute, sec output.  Minutes and seconds are rounded up
+     * to the nearest integer.  Method should only be called in code once a process is completed 
+     * since it calls on the current system time to act as the end of a process.
+     * @param start - a time variable in milliseconds
+     */
     private static void reportTime(long start){
     	long end = System.currentTimeMillis();
     	long time = end-start; //milliseconds
@@ -611,7 +642,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     				System.out.println("Process completed in " +hours + " hours and "+ mins + " minutes\n");
     			}else{
     				mins = (int)time / 60000;
-    				sec = Math.round((time / 60000)*60);
+    				sec = Math.round((time % 60000)*(60/100));
     				System.out.println("Process completed in " +mins + " minutes and "+ sec + " seconds\n");
     			}
     		}else{
