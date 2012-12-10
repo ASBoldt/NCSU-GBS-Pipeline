@@ -42,8 +42,9 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
     String directoryName=null;
     String keyfile=null;
     String enzyme = null;
-    //int maxGoodReads = 200000000;
-    int maxGoodReads = 2000000;
+    //int maxGoodReads = 200000000;  //standrad default, can't run with 16gb ram
+    //int maxGoodReads = 2000000;	// low tester
+    int maxGoodReads = 150000000;	// high tester
     int minCount =1;
     String outputDir=null;
 
