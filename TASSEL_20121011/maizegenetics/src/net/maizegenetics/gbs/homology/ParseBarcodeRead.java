@@ -294,6 +294,26 @@ public class ParseBarcodeRead {
         }
         return bestBC;
     }
+    
+    private Barcode forceFindBestBarcode(String queryS) {
+    	boolean found=false;
+    	String targetArea = queryS.substring(0, (chunkSize/2));
+    	int counter = theBarcodes.length;
+    	//Barcode bestBC=null;
+    	
+    	for(int i=0; i<counter;i++){
+    		//matches a barcode completely
+    		if(targetArea.indexOf(theBarcodes[i].getBarcode())!=-1){
+    			
+    		//	System.out.println(theBarcodes[i].getBarcode());
+    			return theBarcodes[i];
+    		//	bestBC=theBarcodes[i];
+    		//	continue;
+    		}
+    	}
+    //	if(bestBC==null)System.out.println(targetArea);
+       return null;
+    }
 
     /**
      * The barcode libraries used for this study can include two types of extraneous sequence
@@ -358,8 +378,6 @@ public class ParseBarcodeRead {
         }
         return returnValue;
     }
-
-  
 
     /**
      * 
@@ -430,6 +448,94 @@ public class ParseBarcodeRead {
 
         return rbr; 
 
+    }
+    
+    public ReadBarcodeResult forceParseReadIntoTagAndTaxa(String seqS, String qualS, boolean fastq, int minQual, int lengthToKeep) {
+    	long[] read=new long[2];
+        if((minQual>0)&&(qualS!=null)) {
+            int firstBadBase=BaseEncoder.getFirstLowQualityPos(qualS, minQual);
+            if(firstBadBase<(maxBarcodeLength+(2*chunkSize))) return null;  
+        }
+        
+        int miss = -1;
+        if (fastq) { miss=seqS.indexOf('N'); } else { miss=seqS.indexOf('.'); }
+        
+        if(miss!=-1)System.out.println(miss);
+        
+        if((miss!=-1)&&(miss<(maxBarcodeLength+2*chunkSize))) return null;  //bad sequence
+        
+        Barcode bestBarcode=forceFindBestBarcode(seqS);
+        if(bestBarcode==null) return null;  //barcode missing
+        
+        String genomicSeq=null;
+        
+        int cutSiteClose= -1;
+        cutSiteClose=checkForCutSite(seqS, bestBarcode);
+        //System.out.println(cutSiteClose);
+        if(cutSiteClose == -1){
+        	// cut site not found or within designated parameter
+        	return null; 
+        }else if(cutSiteClose == 0){
+        	// take everything after the barcode 
+        	//System.out.println(cutSiteClose);
+        	//System.out.println(seqS.substring((seqS.indexOf(bestBarcode.getBarcode())+bestBarcode.barLength), seqS.length()));
+        	//System.out.println(seqS.substring(bestBarcode.barLength, seqS.length()));
+        	genomicSeq=seqS.substring((seqS.indexOf(bestBarcode.getBarcode())+bestBarcode.barLength), seqS.length());
+        }else if(cutSiteClose == 1){
+        	// take everything after the barcode +1 nucleotide, should be start of cut site remanant
+        	//System.out.println(cutSiteClose);
+        	//System.out.println(seqS.substring((seqS.indexOf(bestBarcode.getBarcode())+bestBarcode.barLength+1), seqS.length()));
+        	//System.out.println(seqS.substring(bestBarcode.barLength+1, seqS.length()));
+        	genomicSeq=seqS.substring((seqS.indexOf(bestBarcode.getBarcode())+bestBarcode.barLength+1), seqS.length());
+        }
+        
+        //this is slow 20% of total time.   Tag, cut site processed, padded with poly-A
+        ReadBarcodeResult tagProcessingResults = removeSeqAfterSecondCutSite(genomicSeq, (byte)(2*chunkSize));
+        //ReadBarcodeResult tagProcessingResults = forceRemoveSeqAfterSecondCutSite(genomicSeq, (byte)(2*chunkSize)); 
+
+        if(tagProcessingResults.length != lengthToKeep){
+    	//   System.out.println("tagProcessingReults.length: " + tagProcessingResults.length);
+    	   return null; // sequence not desired length
+       }
+        //if(tagProcessingResults.length <= lengthToKeep) return null; // sequence not desired length
+        String hap=tagProcessingResults.paddedSequence;  
+        
+        //System.out.println("\n"+hap);
+        
+        read=BaseEncoder.getLongArrayFromSeq(hap);
+        int pos=tagProcessingResults.length;
+        //TODO this instantiation should also include the orginal unprocessedSequence, processedSequence, and paddedSequence - the the object encode it 
+
+        ReadBarcodeResult rbr=new ReadBarcodeResult(read, hap, (byte)pos, bestBarcode.getTaxaName());
+
+      //  System.out.println(rbr.paddedSequence);        
+      //  System.out.println(rbr.toString());
+        
+        return rbr; 
+
+    }
+    
+    private int checkForCutSite(String seq, Barcode bar){
+    	int response=-1;
+    	int areaToScan = initialCutSiteRemnant[0].length()+1;
+    	String seqBegin = seq.substring(0,(chunkSize/2)+areaToScan);
+    	int indexOfBar = seqBegin.indexOf(bar.getBarcode());
+    	String targetArea = seqBegin.substring((indexOfBar+bar.barLength),(indexOfBar+areaToScan+bar.barLength));
+    	int present = -1;
+    	
+    	
+    	present = targetArea.indexOf(initialCutSiteRemnant[0]);
+    	
+    	if (present!=-1 && present==0){
+    		response=0;
+    	}else if(present!=-1 && present==1){
+    		response=1;
+    	}
+    	
+    	//System.out.println(seqBegin);
+		//System.out.println(targetArea);
+    	//System.out.println(response);
+    	return response;
     }
     
     public int getBarCodeCount() {
