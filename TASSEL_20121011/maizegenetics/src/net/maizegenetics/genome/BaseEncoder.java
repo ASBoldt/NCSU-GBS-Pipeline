@@ -19,7 +19,6 @@ public class BaseEncoder {
     public static final int chunkSize = 32;
     public static final int chunkSizeForInt = 16;
     public static final char[] bases = {'A', 'C', 'G', 'T'};
-
     private BaseEncoder() {
     }
 
@@ -122,7 +121,7 @@ public class BaseEncoder {
         v = (v << (2 * (chunkSize - seqLength))); //if shorter fill with AAAA
         return v;
     }
-
+    
     /**
      * @param seq A String containing a DNA sequence.
      * @return result A array of Long ints containing the binary representation of the sequence.
@@ -244,7 +243,19 @@ public class BaseEncoder {
         return v;
     }
 
-    public static String getSequenceFromLong(long val, byte len) {
+    public static String getSequenceFromLong(long val) {
+	    return getSequenceFromLong(val, (byte) chunkSize);
+	}
+
+	public static String getSequenceFromLong(long[] val) {
+	    StringBuilder seq = new StringBuilder();
+	    for (long v : val) {
+	        seq.append(getSequenceFromLong(v));
+	    }
+	    return seq.toString();
+	}
+
+	public static String getSequenceFromLong(long val, byte len) {
         StringBuilder seq = new StringBuilder(chunkSize + 4);
         long mask = 3;
         for (int i = 0; i < len; i++) {
@@ -254,15 +265,7 @@ public class BaseEncoder {
         }
         return seq.toString();
     }
-
-    public static String getSequenceFromLong(long[] val) {
-        StringBuilder seq = new StringBuilder();
-        for (long v : val) {
-            seq.append(getSequenceFromLong(v));
-        }
-        return seq.toString();
-    }
-
+    
     public static int[] getIntFromLong(long val) {
         int[] ival = new int[2];
         ival[0] = (int) (val >> chunkSize);
@@ -333,10 +336,6 @@ public class BaseEncoder {
             }
         }
         return quality.length();
-    }
-
-    public static String getSequenceFromLong(long val) {
-        return getSequenceFromLong(val, (byte) chunkSize);
     }
 
     public static byte seqDifferences(long seq1, long seq2, int maxDivergence) {

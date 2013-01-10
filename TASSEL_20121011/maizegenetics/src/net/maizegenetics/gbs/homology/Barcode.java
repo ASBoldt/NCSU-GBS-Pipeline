@@ -40,6 +40,15 @@ public class Barcode implements Comparable<Barcode> {
         }
         return div;
     }
+    
+    public int compareSequenceBarcodeOnly(long queryLong, int maxDivCheck) {
+        int div=8;
+        for(long targetLong: barOverLong) {
+            int c=BaseEncoder.seqDifferencesForSubset(targetLong,  queryLong, 8, maxDivCheck);
+            if(c<div) div=c;
+        }
+        return div;
+    }
 
     @Override
     public int compareTo(Barcode anotherBarcode) {
@@ -50,6 +59,10 @@ public class Barcode implements Comparable<Barcode> {
 
     public String getTaxaName() {
         return taxaName;
+    }
+    
+    public String getBarcode() {
+        return barcodeS;
     }
 
 
