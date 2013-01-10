@@ -37,6 +37,7 @@ import org.apache.log4j.Logger;
  */
 public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {  
     static long timePoint1;
+    static long now;
     private ArgsEngine engine = null;
     private Logger logger = Logger.getLogger(FastqPairedEndToTagCountPlugin.class);
     String directoryName=null;
@@ -47,6 +48,8 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
     int maxGoodReads = 150000000;	// high tester
     int minCount =1;
     String outputDir=null;
+    protected static HashMap <String, Integer> barcodePairs = new HashMap<String, Integer>();
+    protected static ArrayList<String> summaryOutputs = new ArrayList<String>();
 
     public FastqPairedEndToTagCountPlugin() {
         super(null, false);
@@ -129,12 +132,16 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
      * @param minCount        The minimum number of occurrences of a tag in a fastq file for it to be included in the output tagCounts file
      */
     public static void countTags(String keyFileS, String enzyme, String fastqDirectory, String outputDir, int maxGoodReads, int minCount) {
-        BufferedReader br1;
+        
+    	BufferedReader br1;
         BufferedReader br2;;
 
         String[] countFileNames = null;  // counter variable
         HashMap <String, Integer> pairCount = new HashMap<String, Integer>(); // stores paired sequences to write to file
         ArrayList <String> hashFileNames = new ArrayList<String>(); // stores names of files resulting from HashMap output
+        ArrayList<String> badBarcodeRead2=new ArrayList<String>();
+        summaryOutputs.add("Total Reads \t Forward Only \t Reverse Only \t Both");
+
         
         /* Grab ':' delimited key files */
         String[] tempFileList = keyFileS.split(":");
@@ -228,15 +235,8 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 		}
 		
 fileNum=0;
-/*//DEBUG print all array contents
-for(int left=0;left<2;left++){
-	for(int mid=0;mid<indexStartOfRead2;mid++){
-		for(int right=0;right<5;right++){
-			System.out.println("fileReadInfo FOR ["+left+"]"+"["+mid+"]"+"["+right+"]"+"IS: "+fileReadInfo[left][mid][right]); //DEBUG 
-		}
-	}
-}
-*/
+
+
 //handle keyfiles and enzymes
 //2 arrays for manually inputing multiple enzymes and keys for testing
 System.out.println("OLD Key file is:"+ keyFileS);            
@@ -244,7 +244,9 @@ System.out.println("OLD enzyme is:"+ enzyme);
 String[] hcEnzyme={"PstI-MspI","MspI-PstI"};
 String[] hcKeyFiles={"GBS.key","GBS2.key"};
 		
- 			TagCountMutable [] theTC=new TagCountMutable [2];
+			hcKeyFiles[1]=modifyKey2File(hcKeyFiles[1]);
+
+
  			/* 
  			 * Reads the key file and store the expected barcodes for a lane.
  			 * Set to a length of 2 to hold up to two key files' worth of information.
@@ -255,7 +257,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
           //  String[][] taxaNames=new String[2][];
             
             for(int b=0;b<indexStartOfRead2;b++){
-
+            	
 				if(fileReadInfo[0][b][0]!=null && fileReadInfo[0][b].length==5) {
 					thePBR[0]=new ParseBarcodeRead(
 							hcKeyFiles[0], hcEnzyme[0], fileReadInfo[0][b][1], fileReadInfo[0][b][3]);
@@ -310,17 +312,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                }
 	                String sequenceF="", sequenceR="", qualityScoreF="", qualityScoreR="";
 	                String tempF, tempR;
-	                            
-	                try{
-	                    theTC[0] = new TagCountMutable(2, maxGoodReads);
-	                    theTC[1] = new TagCountMutable(2, maxGoodReads);
-	                }catch(OutOfMemoryError e){
-	                    System.out.println(
-	                        "Your system doesn't have enough memory to store the number of sequences"+
-	                        " you specified.  Try using a smaller value for the minimum number of reads."
-	                    );
-	                }
-	                
+	                                            
 	                // clear all counters and controllers for the upcoming section
 	                int currLine=0;
 	                int bothGood = 0;
@@ -334,16 +326,32 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                String tempSeqR=null;
 	                String tempIdF=null;
 	                String tempIdR=null;
+	                int hashWriteCounter=0;
+	                String concatenation=null;
+	                String hiseqID=null; // captures reverse ID from raw sequence file
+	                int idLine = 1;  // designates lines ID information should be found starting with the first line
+	                String qualOverride="BCCFFFFFHHHHHIJJIJJJJJHHHHH#########################################################################";
 	                
 	                System.out.println("Begin reading raw sequence files");
-	                timePoint1 = System.currentTimeMillis();
-	                
-	                while ((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null 
-	                		&& goodBarcodedReads < maxGoodReads) {
+	                setTime();
+	             //original with max controller   
+	             //   while ((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null 
+	             //   		&& goodBarcodedReads < maxGoodReads) {
+	                // temp read through entire file
+	                int rejected=0;
+	                int x=0;
+	                //while ((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null && x<25) {
+	                while ((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null) {
 	                	currLine++;
+	                	
 	                    try{
 	                        //The quality score is every 4th line; the sequence is every 4th line starting from the 2nd.
-	                        if((currLine+2)%4==0){
+	                        if(currLine==idLine){
+	                        	hiseqID = tempR;
+	                        	//System.out.println(currLine);
+	                        	idLine+=4;
+	                        }else if((currLine+2)%4==0){
+	                        	//System.out.println(tempR);
 	                            sequenceF = tempF;
 	                            sequenceR = tempR;
 	                        }else if(currLine%4==0){
@@ -352,22 +360,19 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                            allReads += 2;
 	                            //After quality score is read, decode barcode using the current sequence & quality  score
 	                            rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);
-	                            rr[1] = thePBR[1].parseReadIntoTagAndTaxa(sequenceR, qualityScoreR, true, 0,64);
+	                            rr[1] = thePBR[1].forceParseReadIntoTagAndTaxa(sequenceR, qualityScoreR, false, 0,64);
 	                            if (rr[0] != null && rr[1] !=null){
 	                                goodBarcodedReads+=2;
-	                                goodBarcodedForwardReads++;
-	                                goodBarcodedReverseReads++;
+	                                //goodBarcodedForwardReads++;
+	                                //goodBarcodedReverseReads++;
 	                                bothGood++;
-	                                
-	                                theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
-	                                theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
-	                                
+	                                //System.out.println(qualityScoreR);
 	                                tempSeqF=rr[0].toString().substring(0,64);
 	                                tempIdF = rr[0].toString().substring(65);
-	                                tempSeqR=rr[1].toString().substring(0,64);
+	                                tempSeqR=rr[1].paddedSequence;  //correctly handles Ns present in sequence
 	                                tempIdR = rr[1].toString().substring(65);
 	                                
-	                                String concatenation=stitch(tempSeqF, tempSeqR, tempIdF, tempIdR);
+	                                concatenation=stitch(tempSeqF, tempSeqR, tempIdF, tempIdR);
 	                                
 	                                //Check if sequence is part of HashMap
 	                                if(pairCount.containsKey(concatenation)){
@@ -382,19 +387,42 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                              
 	                            }
 	                            else if (rr[0] != null){
-	                                goodBarcodedReads++;
 	                                goodBarcodedForwardReads++;
-	                               theTC[0].addReadCount(rr[0].getRead(), rr[0].getLength(), 1);
-	                            }
+	                                //x++;
+	                                String bb = sequenceR.substring(0,11);
+	                                //String bb = sequenceR;
+	                                int n = 0;
+	                                for(int i=0;i<9;i++){
+	                                	if(bb.charAt(i)=='N'){
+	                                		n++;
+	                                	}
+	                                }
+	                                if(n>1){
+	                                	rejected++;
+	                                }else{
+	                                	badBarcodeRead2.add(bb);
+	                                	//badBarcodeRead2.add(x+"\t"+bb);
+	                                }
+	                     
+	                          }
 	                            else if (rr[1] != null){
-	                                goodBarcodedReads++;
 	                                goodBarcodedReverseReads++;
-	                               theTC[1].addReadCount(rr[1].getRead(), rr[1].getLength(), 1);
+	                                //System.out.println(rr[1].paddedSequence);
 	                            }
 	                            if (allReads % 10000000 == 0) {
 	                            	reportStats(bothGood, goodBarcodedForwardReads, goodBarcodedReverseReads, 
 	                            			goodBarcodedReads, allReads, hashCount);
+	                            	printListToFile(outputDir+File.separator+"List_bad_read2_barcodes.txt",badBarcodeRead2);
+	                            	badBarcodeRead2.clear();
+	                            	System.out.println("REJECTED: >1 N in first 9 bases: "+rejected);
 	                            }
+	                            
+	                            if(allReads % 40000000 ==0){
+	                            	processHashMap(countFileNames[b],countFileNames[b+indexStartOfRead2],outputDir,
+	                            			hashWriteCounter,pairCount, hashFileNames);
+	                            	hashWriteCounter++;
+	                            }
+	                            	
 	                        }
 	                    }catch(NullPointerException e){
 	                        System.out.println("Unable to correctly parse the sequence and "
@@ -403,51 +431,20 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                    }
 	                    
 	                } 
-	                reportTime(timePoint1);
-	                try {
-	                	
-	                	long timeTemp = System.currentTimeMillis();
-	                	String hashOutName = countFileNames[b]+"-"+countFileNames[b+indexStartOfRead2]+".txt";
-	                	
-	                    PrintWriter out = new PrintWriter(
-	                    		new BufferedWriter(
-	                    				new FileWriter(
-	                    						outputDir+File.separator+hashOutName, true)));
 	                
-	                	hashFileNames.add(hashOutName);
-	                	
-	                	
-		                for(String h: pairCount.keySet()){
-		                	String key = h.toString();
-		                	String value = pairCount.get(h).toString();
-		                	out.println(key+ "\t" + value);
-		                }
-		                out.close();		// close PrintWriter
-		                //reporter
-		                System.out.println("The number of lines added to " + hashOutName +" is " +pairCount.size());
-		                
-		                pairCount.clear();  //force memory release before looping back through
-		                reportTime(timeTemp);
-	                }catch (IOException e) {
-	                	System.out.println(e.getMessage());
-	                	;
-	                }
+	                System.out.println("REJECTED: >1 N in first 9 bases: "+rejected);
+	                printListToFile(outputDir+File.separator+"List_bad_read2_barcodes.txt",badBarcodeRead2);
+                	badBarcodeRead2.clear();
 	                
+	                processHashMap(countFileNames[b],countFileNames[b+indexStartOfRead2],outputDir,
+                			hashWriteCounter,pairCount, hashFileNames);
+	                reportTime(now);
+	 
                 reportStats(bothGood, goodBarcodedForwardReads, goodBarcodedReverseReads, 
             			goodBarcodedReads, allReads, hashCount);
-                System.out.println("Timing process (sorting, collapsing, and writing TagCount to file).");
-                timePoint1 = System.currentTimeMillis();
-                theTC[0].collapseCounts();
-                theTC[1].collapseCounts();
-                theTC[0].writeTagCountFile(outputDir+File.separator+countFileNames[b], FilePacking.Bit, minCount);
-                theTC[1].writeTagCountFile(outputDir+File.separator+countFileNames[b+indexStartOfRead2], FilePacking.Bit, minCount);
-                reportTime(timePoint1);
                 br1.close();
                 br2.close();
-                //force memory release before looping back through
-                theTC[0]=null;
-                theTC[1]=null;
-                
+              
                 fileNum++;
             
 		        } catch(Exception e) {
@@ -457,7 +454,212 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
         			}
 			}
             combineHashOutputFiles(hashFileNames, outputDir);
+        	printIds(outputDir);
+        	printListToFile(outputDir+File.separator+"Summary_Stats.txt",summaryOutputs);
         	
+    }
+    
+    
+    private static void summarizeCounts(String line){
+    	summaryOutputs.add(line);
+    }
+    
+    private static String modifyKey2File(String name){
+    	String newName=name+"_mod";
+    	String keyContents;
+    	ArrayList <String> modified = new ArrayList<String>();
+    	int currentLine = 0;
+    	int barcodeLength = 0;
+    	
+    	copyOriginalKeyFile(name, newName);
+    	
+    	try{
+    		BufferedReader inputKey = new BufferedReader(new InputStreamReader(
+    				new FileInputStream(name)));
+    	
+	    	while((keyContents = inputKey.readLine()) != null){
+	    		currentLine++;
+	    		if(currentLine==1){
+	    			System.out.println("Begin modifications to key file");
+	    		}else{
+	    			String splitKeyLine[] = keyContents.split("\t");
+	    			barcodeLength=(splitKeyLine[2].length());
+	    			
+	    			deletion(splitKeyLine, barcodeLength, modified);
+	    			substitution(splitKeyLine, barcodeLength, modified);
+	    					
+	    				
+	    		}
+
+	    	}		
+	    	inputKey.close();
+	    	}catch(Exception e) {
+            System.out.println("modifyKey2File: e="+e);
+            e.printStackTrace();
+			}
+    	
+    	printListToFile(newName, modified);
+    	
+    	return newName;
+    }
+    
+    private static void copyOriginalKeyFile(String name, String newName){
+    	String temp;
+    	ArrayList <String> hold = new ArrayList<String>();
+    	int size=0;
+    	
+    	try{
+    		BufferedReader source = new BufferedReader(new InputStreamReader(
+    				new FileInputStream(name)));
+    		while((temp=source.readLine())!=null){
+    			hold.add(temp);
+    		}
+    		source.close();
+    		}catch(Exception e) {
+            System.out.println("copyOriginalKeyFile: e="+e);
+            e.printStackTrace();
+			}
+    	
+    	printListToFile(newName, hold);
+    	
+    }
+    
+    private static void deletion(String [] lineElement, int length, ArrayList<String>list){
+    	String tempBarcode;
+    	String barcode = lineElement[2];
+    	
+    	for(int i=0; i<length; i++){
+			if(i==0){
+				list.add(lineElement[0]+"\t"+lineElement[1]+"\t"
+						+barcode.substring(1,length)+"\t"+lineElement[3]+"_mod\t"
+						+lineElement[4]+"\t"+lineElement[5]+"\t"+lineElement[6]+"\t"
+						+lineElement[7]);
+			}
+			else{
+				tempBarcode = barcode.substring(0,i)+barcode.substring(i+1,length);
+				if(list.contains(tempBarcode)){
+					continue;
+				}else{
+					list.add(lineElement[0]+"\t"+lineElement[1]+"\t"
+							+tempBarcode+"\t"+lineElement[3]+"_mod\t"
+							+lineElement[4]+"\t"+lineElement[5]+"\t"+lineElement[6]+"\t"
+							+lineElement[7]);
+				}
+			}
+    	}
+    	
+    	for(int i=0; i<length-1; i++){
+			if(i==0){
+				list.add(lineElement[0]+"\t"+lineElement[1]+"\t"
+						+barcode.substring(2,length)+"\t"+lineElement[3]+"_mod\t"
+						+lineElement[4]+"\t"+lineElement[5]+"\t"+lineElement[6]+"\t"
+						+lineElement[7]);
+			}
+			else{
+				tempBarcode = barcode.substring(0,i)+barcode.substring(i+2,length);
+				if(list.contains(tempBarcode)){
+					continue;
+				}else{
+					list.add(lineElement[0]+"\t"+lineElement[1]+"\t"
+							+tempBarcode+"\t"+lineElement[3]+"_mod\t"
+							+lineElement[4]+"\t"+lineElement[5]+"\t"+lineElement[6]+"\t"
+							+lineElement[7]);
+				}
+			}
+    	}
+    }
+    
+    private static void substitution(String [] lineElement, int length, ArrayList<String>list){
+    	String originalBarcode = lineElement[2];
+    	char [] nucleotides = {'A','C','G','T','N'};
+    	char [] barcodeAsArray = originalBarcode.toCharArray();
+    	String moddedBarcode;
+    	String newLine;
+    	
+    	for(int i=0;i<length;i++){
+    		for(int k=0;k<nucleotides.length;k++){
+    			barcodeAsArray = originalBarcode.toCharArray();
+    			barcodeAsArray[i]=nucleotides[k];
+    			moddedBarcode=new String(barcodeAsArray);
+    			newLine = lineElement[0]+"\t"+lineElement[1]+"\t"
+						+moddedBarcode+"\t"+lineElement[3]+"_mod\t"
+						+lineElement[4]+"\t"+lineElement[5]+"\t"+lineElement[6]+"\t"
+						+lineElement[7];
+    				
+    			if(list.contains(newLine) || moddedBarcode.equals(originalBarcode)){
+    				continue;
+    			}else{
+    				list.add(lineElement[0]+"\t"+lineElement[1]+"\t"
+						+moddedBarcode+"\t"+lineElement[3]+"_mod\t"
+						+lineElement[4]+"\t"+lineElement[5]+"\t"+lineElement[6]+"\t"
+						+lineElement[7]);
+    			}
+    			
+    		}
+    	}
+    
+    }
+    
+    private static void printListToFile(String name, ArrayList<String> list){
+    	int size=0;
+    	try{
+    		PrintWriter out = new PrintWriter(new BufferedWriter(
+    				new FileWriter(name, true)));
+
+    		list.trimToSize();
+    		size=list.size();
+    		for(int i=0;i<size;i++){
+    			out.println(list.get(i).toString());
+    		}
+    		out.close();
+    	}catch (IOException e) {
+            System.out.println(e.getMessage());
+            }
+    }
+    
+    /**
+     * Writes out the contents of a HashMap to a unique file.  The HashMap contains sequences
+     * and identification information.  Due to the large amounts of data that is 
+     * being process, at the end of the method, the HashMap is cleared
+     * to free system resources.
+     * @param fileName1 name of the first source data file
+     * @param fileName2 name of the second source data file
+     * @param dir is the output directory
+     * @param order is an integer that is counting the number of files that have been written and is used
+     * to help add a uniqueness to the filename
+     * @param stored the HashMap that contains the sequences and identification information
+     * @param nameLog is the list containing file names processed by this file
+     */
+    private static void processHashMap(String fileName1, String fileName2,String dir,
+    		int order, HashMap<String, Integer> stored, ArrayList <String> nameLog){
+    	
+    	try {
+        	long timeTemp = System.currentTimeMillis();
+        	String hashOutName = Integer.toString(order)+"-"+fileName1+"-"+fileName2+".txt";
+        	
+            PrintWriter out = new PrintWriter(
+            		new BufferedWriter(
+            				new FileWriter(
+            						dir+File.separator+hashOutName, true)));
+        
+        	nameLog.add(hashOutName);
+        	
+        	
+            for(String h: stored.keySet()){
+            	String key = h.toString();
+            	String value = stored.get(h).toString();
+            	out.println(key+ "\t" + value);
+            }
+            out.close();		// close PrintWriter
+            //reporter
+            System.out.println("The number of lines added to " + hashOutName +" is " +stored.size());
+            
+            stored.clear();  // force memory clear before continuing
+            reportTime(timeTemp);
+        }catch (IOException e) {
+        	System.out.println(e.getMessage());
+        	;
+        }
     }
     
     /**
@@ -487,19 +689,23 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     	float percentReverse = 100*((float)reverse/allGood);
     	float percentUnique = 100*((float)listCount/allGood);
     	DecimalFormat formatter = new DecimalFormat("00.0");
+    	String forSummary = Integer.toString(totalReads)+"\t"+Integer.toString(forward)+"\t"+
+    			Integer.toString(reverse)+"\t"+Integer.toString(both);
     	
     	System.out.println("Total Reads:" + totalReads);
-    	System.out.println("The number of good lines encountered so far is "+allGood+" ("+formatter.format(percentAll)+
+    	System.out.println("The number of all good lines encountered so far is "+allGood+" ("+formatter.format(percentAll)+
     			"% of total reads)");
-    	System.out.println("The number of good forward reads in this file is: "+forward+" ("+formatter.format(percentForward)+
+    	System.out.println("The number of only good forward reads in this file is: "+forward+" ("+formatter.format(percentForward)+
     			"% of all good lines read)");
-    	System.out.println("The number of good reverse reads in this file is: "+reverse+" ("+formatter.format(percentReverse)+
+    	System.out.println("The number of only good reverse reads in this file is: "+reverse+" ("+formatter.format(percentReverse)+
     			"% of all good lines read)");
     	System.out.println("The number of good forward and reverse reads in this file is: "+both+" ("+formatter.format(percentBoth)+
     			"% of all good lines read)");
-    	System.out.println("The number of unique pairs of good forward and reverse sequence in this file is "+listCount+
-    			" ("+formatter.format(percentUnique)+"% of all good lines read\n");
-     }
+    	System.out.println("The number of unique pairs of good forward and reverse sequence in this file is at most "+listCount+
+    			" ("+formatter.format(percentUnique)+"% of all good lines read)\n");
+    	
+    	summarizeCounts(forSummary);
+    }
     
     /**
      * Prints a message to the console indicating there is a problem with the file name structure
@@ -522,8 +728,19 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
      * @return - a string concatenation of the sequences and id information with formatting elements
      */
     private static String stitch(String forward, String reverse, String idF, String idR){
-    	String tempStitch=forward+","+reverse+"\t"+idF+"\t"+idR;
-    	return tempStitch;
+    	//String tempStitch=forward+","+reverse+"\t"+idF+"\t"+idR;
+    	String result;
+    	String tag = forward+reverse;
+    	String id1[]=idF.split(":");
+    	String id2[]=idR.split(":");
+    	String flowcell = id1[2];
+    	String barcodeIDs = id1[1]+"-"+id2[1];
+    	String lane = id1[3];
+    	String tab="\t";
+    	
+    	result = tag+tab+barcodeIDs+tab+flowcell+tab+lane;
+ 
+    	return result;
     }
     
     /**
@@ -568,6 +785,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	    			 r1Ids = splitline[1].split(":");		// set ID information from read1 files (forward)
 	    			 r2Ids = splitline[2].split(":");		// set ID information from read2 files (reverse)
 	    			 // reorganize and consolidate ID information
+	    			 logIds(splitline[1], splitline[2]);
 	    			 ids = r1Ids[0]+":"+r1Ids[2]+":"+r1Ids[3]+":"+r1Ids[1]+":"+r2Ids[1]; 
 	    			 numberOfCounts=Integer.parseInt(splitline[3]); // copy the sequence count
 	    			 
@@ -589,6 +807,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     		}catch(IOException io) { 
                 System.out.println(io.getMessage());
             }
+    		System.out.println(arrayNames[i]+" processed");
     	}
     	// Reporter
     	reportTime(tempTime);    	
@@ -601,7 +820,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
         	PrintWriter out = new PrintWriter(
             		new BufferedWriter(
             				new FileWriter(
-            						directoryInfo+File.separator+"Paired_End_Info.txt", true)));
+            						directoryInfo+File.separator+"Paired_End_Tags_Info.txt", true)));
         tempCount=0;
         	for(String h: hma.keySet()){
             	String key = h.toString();
@@ -620,6 +839,14 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
         }
     	reportTime(tempTime);
     }
+    
+    /**
+     * Sets a static class variable to current system time.
+     */
+    private static void setTime(){
+    	now = System.currentTimeMillis();
+    }
+    
     /**
      * A reporter method that takes in a millisecond start time and processes
      * it to a friendlier hour, minute, sec output.  Minutes and seconds are rounded up
@@ -642,8 +869,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     				System.out.println("Process completed in " +hours + " hours and "+ mins + " minutes\n");
     			}else{
     				mins = (int)time / 60000;
-    				sec = Math.round((time % 60000)*(60/100));
-    				System.out.println("Process completed in " +mins + " minutes and "+ sec + " seconds\n");
+    				System.out.println("Process completed in " +mins + " minutes\n");
     			}
     		}else{
     			sec = Math.round((time / 1000));
@@ -659,7 +885,50 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     	String newID = tempID[2]+":"+tempID[3]+":"+tempID[4];
     	return newID;
     }
-    	    
+    
+    
+    private static void logIds(String fID, String rID){
+    	String fSplit [] = fID.split(":");
+    	String rSplit [] = rID.split(":");
+    	String uID = fSplit[1]+":"+rSplit[1];
+    	
+    	if(barcodePairs.containsKey(uID)){
+    		barcodePairs.put(uID, barcodePairs.get(uID)+1);
+    	}else{
+    		barcodePairs.put(uID, 1);
+    	}
+    }
+    
+    
+    private static void printIds(String directoryInfo){
+    	long tempTime = System.currentTimeMillis(); 
+    	System.out.println("\nprintIds: Start writing to output file");
+    	System.out.println("The number of lines to be sent to the output file is " + barcodePairs.size());
+    	
+    	try {
+    		ArrayList value = new ArrayList();
+        	PrintWriter out = new PrintWriter(
+            		new BufferedWriter(
+            				new FileWriter(
+            						directoryInfo+File.separator+"Paired_End__ID_Info.txt", true)));
+        int tempCount=0;
+        	for(String h: barcodePairs.keySet()){
+            	String key = h.toString();
+            	String val = barcodePairs.get(h).toString();
+            	out.println(key+ "\t" + val);
+            	tempCount++;
+            	// send update to console so user gets status update
+            	if(tempCount%1000000 == 0){
+            	System.out.println(tempCount+"lines written to file");
+            	}
+            }
+            out.close();		// close PrintWriter
+        }catch (IOException e) {
+        	 System.out.println(e.getMessage());
+        }
+    	reportTime(tempTime);
+    }
+    
     @Override
     public ImageIcon getIcon(){
        throw new UnsupportedOperationException("Not supported yet.");
