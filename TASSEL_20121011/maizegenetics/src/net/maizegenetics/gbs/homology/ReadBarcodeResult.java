@@ -27,6 +27,13 @@ public class ReadBarcodeResult {
         this.length = length;
         this.taxonName = taxon;
     }
+    
+    public ReadBarcodeResult(long[] read, String paddedSequence, byte length, String taxon) {
+        this.read = read;
+        this.paddedSequence = paddedSequence;
+        this.length = length;
+        this.taxonName = taxon;
+    }
 
     public ReadBarcodeResult(String sequence){
         unprocessedSequence = sequence;
