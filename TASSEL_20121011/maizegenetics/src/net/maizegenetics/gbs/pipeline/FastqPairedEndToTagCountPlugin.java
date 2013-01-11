@@ -886,7 +886,10 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     	return newID;
     }
     
-    
+    /**
+     * 
+     * @param id
+     */
     private static void logIds(String id){
     	
     	if(barcodePairs.containsKey(id)){
