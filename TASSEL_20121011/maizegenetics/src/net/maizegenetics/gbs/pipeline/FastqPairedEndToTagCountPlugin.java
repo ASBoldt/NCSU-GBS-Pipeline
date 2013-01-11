@@ -46,7 +46,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
     int maxGoodReads = 150000000;	// high tester
     int minCount =1;
     String outputDir=null;
-    protected static HashMap <String, Integer> barcodePairs = new HashMap<String, Integer>();
+    protected static TreeMap <String, Integer> barcodePairs = new TreeMap<String, Integer>();
     protected static ArrayList<String> summaryOutputs = new ArrayList<String>();
 
     public FastqPairedEndToTagCountPlugin() {
@@ -319,7 +319,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                goodBarcodedForwardReads = 0;
 	                goodBarcodedReverseReads = 0;
 	                ReadBarcodeResult [] rr = new ReadBarcodeResult [2];
-	                int hashCount = 0;
+	                int pairCount = 0;
 	                String tempSeqF=null;
 	                String tempSeqR=null;
 	                String tempIdF=null;
@@ -381,14 +381,14 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                                	pairCount.put(concatenation, 1);
 	                                }
 	                                
-	                                hashCount = pairCount.size();
+	                                pairCount = pairCount.size();
 	                                x++;
 	                              
 	                            }
 	                            else if (rr[0] != null){
 	                                goodBarcodedForwardReads++;
 	                                //x++;
-	                                String bb = sequenceR.substring(0,11);
+	                     /*           String bb = sequenceR.substring(0,11);
 	                                //String bb = sequenceR;
 	                                int n = 0;
 	                                for(int i=0;i<9;i++){
@@ -403,21 +403,21 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                                	//badBarcodeRead2.add(x+"\t"+bb);
 	                                }
 	                     
-	                          }
+	                     */     }
 	                            else if (rr[1] != null){
 	                                goodBarcodedReverseReads++;
 	                                //System.out.println(rr[1].paddedSequence);
 	                            }
 	                            if (allReads % 10000000 == 0) {
 	                            	reportStats(bothGood, goodBarcodedForwardReads, goodBarcodedReverseReads, 
-	                            			goodBarcodedReads, allReads, hashCount);
+	                            			goodBarcodedReads, allReads, pairCount);
 	                            	printListToFile(outputDir+File.separator+"List_bad_read2_barcodes.txt",badBarcodeRead2);
-	                            	badBarcodeRead2.clear();
-	                            	System.out.println("REJECTED: >1 N in first 9 bases: "+rejected);
+	                     //       	badBarcodeRead2.clear();
+	                     //       	System.out.println("REJECTED: >1 N in first 9 bases: "+rejected);
 	                            }
 	                            
 	                            if(allReads % 40000000 ==0){
-	                            	processHashMap(countFileNames[b],countFileNames[b+indexStartOfRead2],outputDir,
+	                            	processPairsCounted(countFileNames[b],countFileNames[b+indexStartOfRead2],outputDir,
 	                            			hashWriteCounter,pairCount, hashFileNames);
 	                            	hashWriteCounter++;
 	                            }
@@ -431,16 +431,16 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                    
 	                } 
 	                
-	                System.out.println("REJECTED: >1 N in first 9 bases: "+rejected);
-	                printListToFile(outputDir+File.separator+"List_bad_read2_barcodes.txt",badBarcodeRead2);
-                	badBarcodeRead2.clear();
+	                //System.out.println("REJECTED: >1 N in first 9 bases: "+rejected);
+	           //     printListToFile(outputDir+File.separator+"List_bad_read2_barcodes.txt",badBarcodeRead2);
+               // 	badBarcodeRead2.clear();
 	                
-	                processHashMap(countFileNames[b],countFileNames[b+indexStartOfRead2],outputDir,
+	                processPairsCounted(countFileNames[b],countFileNames[b+indexStartOfRead2],outputDir,
                 			hashWriteCounter,pairCount, hashFileNames);
 	                reportTime(now);
 	 
                 reportStats(bothGood, goodBarcodedForwardReads, goodBarcodedReverseReads, 
-            			goodBarcodedReads, allReads, hashCount);
+            			goodBarcodedReads, allReads, pairCount);
                 br1.close();
                 br2.close();
               
@@ -629,7 +629,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
      * @param stored the HashMap that contains the sequences and identification information
      * @param nameLog is the list containing file names processed by this file
      */
-    private static void processHashMap(String fileName1, String fileName2,String dir,
+    private static void processPairsCounted(String fileName1, String fileName2,String dir,
     		int order, TreeMap<String, Integer> stored, ArrayList <String> nameLog){
     	
     	try {
@@ -733,7 +733,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     	String id1[]=idF.split(":");
     	String id2[]=idR.split(":");
     	String flowcell = id1[2];
-    	String barcodeIDs = id1[1]+"-"+id2[1];
+    	String barcodeIDs = id1[1]+":"+id2[1];
     	String lane = id1[3];
     	String tab="\t";
     	
@@ -750,15 +750,18 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
      */
     private static void combineHashOutputFiles(ArrayList<String> names, String directoryInfo){
     	
-    	String allSeq;	// sequence
-    	String ids;		// concatenation of select information from each read identifier
-    	String r1Ids[];	// split id information from read 1
-    	String r2Ids[];	// split id information from read 2
+    	String seq;	// sequence
+    	String barcodeCombo;	// combination of barcodes that generated a tag
+    	String flowcell;	// flowcell
+    	String lane;	// lane
     	int numberOfCounts=0; // number of times a sequence has been observed
     	String [] arrayNames = names.toArray(new String[names.size()]); // copy list of files to process
+    	
+    	TreeMap <String, TreeMap<String, String[]> tagInfo>= new TreeMap<String, TreeMap<String, String[5]>>();
+    	
     	// the following HashMap allows for one key (the sequence string) to hold 
     	// many values (id infomation) via the ArrayList
-    	HashMap <String, ArrayList<String>> hma = new HashMap<String, ArrayList<String>>();
+    	//HashMap <String, ArrayList<String>> hma = new HashMap<String, ArrayList<String>>();
     	ArrayList <String> tempArrayList = new ArrayList<String>(); // holds information before addition to HashMap
   		int tempCount = 0;  //reporter variable
     	long tempTime=0;	//reporter variable
@@ -779,12 +782,10 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     			
     			while ((lineRead = hbr.readLine()) != null){
 	    			 
-	    			 String splitline[] = lineRead.split("\t"); // parse infomation from incoming file
-	    			 allSeq = splitline[0];		//set the sequence
-	    			 r1Ids = splitline[1].split(":");		// set ID information from read1 files (forward)
-	    			 r2Ids = splitline[2].split(":");		// set ID information from read2 files (reverse)
-	    			 // reorganize and consolidate ID information
-	    			 logIds(splitline[1], splitline[2]);
+	    			 String splitLine[] = lineRead.split("\t"); // parse infomation from incoming file
+	    			 seq = splitLine[0];		
+	    			 barcodeCombo = splitLine[1]; 
+	    			 logIds(barcodeCombo);
 	    			 ids = r1Ids[0]+":"+r1Ids[2]+":"+r1Ids[3]+":"+r1Ids[1]+":"+r2Ids[1]; 
 	    			 numberOfCounts=Integer.parseInt(splitline[3]); // copy the sequence count
 	    			 
@@ -886,15 +887,12 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     }
     
     
-    private static void logIds(String fID, String rID){
-    	String fSplit [] = fID.split(":");
-    	String rSplit [] = rID.split(":");
-    	String uID = fSplit[1]+":"+rSplit[1];
+    private static void logIds(String id){
     	
-    	if(barcodePairs.containsKey(uID)){
-    		barcodePairs.put(uID, barcodePairs.get(uID)+1);
+    	if(barcodePairs.containsKey(id)){
+    		barcodePairs.put(id, barcodePairs.get(id)+1);
     	}else{
-    		barcodePairs.put(uID, 1);
+    		barcodePairs.put(id, 1);
     	}
     }
     
