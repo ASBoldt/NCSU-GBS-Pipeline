@@ -11,9 +11,7 @@ import java.util.Arrays;
 import java.text.DecimalFormat;
 import java.io.PrintWriter;
 import java.io.*;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.Map;
+import java.util.*;
 
 import net.maizegenetics.util.MultiMemberGZIPInputStream;
 import javax.swing.ImageIcon;
@@ -137,7 +135,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
         BufferedReader br2;;
 
         String[] countFileNames = null;  // counter variable
-        HashMap <String, Integer> pairCount = new HashMap<String, Integer>(); // stores paired sequences to write to file
+        TreeMap <String, Integer> pairCount = new TreeMap<String, Integer>(); // stores paired sequences to write to file
         ArrayList <String> hashFileNames = new ArrayList<String>(); // stores names of files resulting from HashMap output
         ArrayList<String> badBarcodeRead2=new ArrayList<String>();
         summaryOutputs.add("Total Reads \t Forward Only \t Reverse Only \t Both");
@@ -340,8 +338,8 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                // temp read through entire file
 	                int rejected=0;
 	                int x=0;
-	                //while ((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null && x<25) {
-	                while ((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null) {
+	                while ((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null && x<1000000) {
+	                //while ((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null) {
 	                	currLine++;
 	                	
 	                    try{
@@ -384,6 +382,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                                }
 	                                
 	                                hashCount = pairCount.size();
+	                                x++;
 	                              
 	                            }
 	                            else if (rr[0] != null){
