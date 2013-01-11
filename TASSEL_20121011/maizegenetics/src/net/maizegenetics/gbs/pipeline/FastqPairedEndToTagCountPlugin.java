@@ -630,7 +630,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
      * @param nameLog is the list containing file names processed by this file
      */
     private static void processHashMap(String fileName1, String fileName2,String dir,
-    		int order, HashMap<String, Integer> stored, ArrayList <String> nameLog){
+    		int order, TreeMap<String, Integer> stored, ArrayList <String> nameLog){
     	
     	try {
         	long timeTemp = System.currentTimeMillis();
