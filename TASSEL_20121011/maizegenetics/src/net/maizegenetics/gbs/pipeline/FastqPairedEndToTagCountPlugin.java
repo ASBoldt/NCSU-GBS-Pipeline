@@ -136,6 +136,9 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 
         String[] countFileNames = null;  // counter variable
         TreeMap <String, Integer> pairCount = new TreeMap<String, Integer>(); // stores paired sequences to write to file
+        TreeMap <String, Integer> tagCount = new TreeMap<String, Integer>();  // stores and coutns tags
+        TreeMap <String, Integer> laneTrack = new TreeMap<String,Integer>();
+        
         ArrayList <String> hashFileNames = new ArrayList<String>(); // stores names of files resulting from HashMap output
         ArrayList<String> badBarcodeRead2=new ArrayList<String>();
         summaryOutputs.add("Total Reads \t Forward Only \t Reverse Only \t Both");
@@ -252,6 +255,8 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
  			 * read is[1]
  			 */
             ParseBarcodeRead [] thePBR = new ParseBarcodeRead [2];  
+            int bothGood = 0;
+            ArrayList <String> laneNumAL = new ArrayList<String>(); //track lane numbers
           //  String[][] taxaNames=new String[2][];
             
             for(int b=0;b<indexStartOfRead2;b++){
@@ -313,13 +318,13 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                                            
 	                // clear all counters and controllers for the upcoming section
 	                int currLine=0;
-	                int bothGood = 0;
+	                
 	                allReads = 0;
 	                goodBarcodedReads = 0;
 	                goodBarcodedForwardReads = 0;
 	                goodBarcodedReverseReads = 0;
 	                ReadBarcodeResult [] rr = new ReadBarcodeResult [2];
-	                int pairCount = 0;
+	                int pairCountCounter = 0;
 	                String tempSeqF=null;
 	                String tempSeqR=null;
 	                String tempIdF=null;
@@ -338,7 +343,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                // temp read through entire file
 	                int rejected=0;
 	                int x=0;
-	                while ((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null && x<1000000) {
+	                while ((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null && x<2000) {
 	                //while ((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null) {
 	                	currLine++;
 	                	
@@ -370,9 +375,46 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                                tempSeqR=rr[1].paddedSequence;  //correctly handles Ns present in sequence
 	                                tempIdR = rr[1].toString().substring(65);
 	                                
+	                                
 	                                concatenation=stitch(tempSeqF, tempSeqR, tempIdF, tempIdR);
 	                                
-	                                //Check if sequence is part of HashMap
+	                                String idF1[]=tempIdF.split(":");
+	                            	String idR2[]=tempIdR.split(":");
+	                            	String laneID = idF1[3];
+	                            	if(laneNumAL.isEmpty()){
+	                            		laneNumAL.add(laneID);
+	                            	}
+	                            	else if(laneNumAL.contains(laneID)){}
+	                            	else{
+	                            		laneNumAL.add(laneID);
+	                            	}
+	                                
+	                                if(tagCount.containsKey(tempSeqF+tempSeqR)){
+	                                	tagCount.put(tempSeqF+tempSeqR, tagCount.get(tempSeqF+tempSeqR)+1);
+	                                }else{
+	                                	tagCount.put(tempSeqF+tempSeqR, 1);
+	                                }
+	                                
+	                                if(pairCount.containsKey(concatenation)){
+	                                	if(laneTrack.containsKey(String.valueOf(pairCount.get(concatenation))+":"+laneID)){
+	                                		laneTrack.put(String.valueOf(pairCount.get(concatenation))+":"+laneID, laneTrack.get(String.valueOf(pairCount.get(concatenation))+":"+laneID)+1);
+	                 //System.out.println("Main " + laneTrack.get(String.valueOf(pairCount.get(concatenation))+":"+laneID));
+	                                	}else{
+	                                		laneTrack.put(String.valueOf(pairCount.get(concatenation))+":"+laneID, 1);
+	                                	}
+	                                }else{
+	                                	pairCount.put(concatenation, bothGood);
+	                                	laneTrack.put(String.valueOf(bothGood)+":"+laneID, 1);
+	                                }
+	                                
+	                                	
+	                                
+	                 //System.out.println(laneTrack);
+	                                logIds(idF1[1], idR2[1]);
+	                                
+	                                
+	                                
+	                        /*        //Check if sequence is part of HashMap
 	                                if(pairCount.containsKey(concatenation)){
 	                                	// get occurences, increment it, set new value
 	                                	pairCount.put(concatenation, pairCount.get(concatenation)+1);
@@ -381,8 +423,8 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                                	pairCount.put(concatenation, 1);
 	                                }
 	                                
-	                                pairCount = pairCount.size();
-	                                x++;
+	                                pairCountCounter = pairCount.size();
+	                        */        x++;
 	                              
 	                            }
 	                            else if (rr[0] != null){
@@ -410,16 +452,16 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	                            }
 	                            if (allReads % 10000000 == 0) {
 	                            	reportStats(bothGood, goodBarcodedForwardReads, goodBarcodedReverseReads, 
-	                            			goodBarcodedReads, allReads, pairCount);
-	                            	printListToFile(outputDir+File.separator+"List_bad_read2_barcodes.txt",badBarcodeRead2);
+	                            			goodBarcodedReads, allReads, pairCountCounter);
+	                     //       	printListToFile(outputDir+File.separator+"List_bad_read2_barcodes.txt",badBarcodeRead2);
 	                     //       	badBarcodeRead2.clear();
 	                     //       	System.out.println("REJECTED: >1 N in first 9 bases: "+rejected);
 	                            }
 	                            
 	                            if(allReads % 40000000 ==0){
-	                            	processPairsCounted(countFileNames[b],countFileNames[b+indexStartOfRead2],outputDir,
-	                            			hashWriteCounter,pairCount, hashFileNames);
-	                            	hashWriteCounter++;
+	                      //      	processPairsCounted(countFileNames[b],countFileNames[b+indexStartOfRead2],outputDir,
+	                      //      			hashWriteCounter,pairCount, hashFileNames);
+	                      //      	hashWriteCounter++;
 	                            }
 	                            	
 	                        }
@@ -435,12 +477,12 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	           //     printListToFile(outputDir+File.separator+"List_bad_read2_barcodes.txt",badBarcodeRead2);
                // 	badBarcodeRead2.clear();
 	                
-	                processPairsCounted(countFileNames[b],countFileNames[b+indexStartOfRead2],outputDir,
-                			hashWriteCounter,pairCount, hashFileNames);
+	           //     processPairsCounted(countFileNames[b],countFileNames[b+indexStartOfRead2],outputDir,
+               // 			hashWriteCounter,pairCount, hashFileNames);
 	                reportTime(now);
 	 
                 reportStats(bothGood, goodBarcodedForwardReads, goodBarcodedReverseReads, 
-            			goodBarcodedReads, allReads, pairCount);
+            			goodBarcodedReads, allReads, pairCountCounter);
                 br1.close();
                 br2.close();
               
@@ -452,12 +494,78 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 		            System.out.println("Finished reading "+(fileNum+1)+" of "+fastqFiles.length+" sequence files.");
         			}
 			}
-            combineHashOutputFiles(hashFileNames, outputDir);
+            printTagCountMap(tagCount, outputDir);
+           // combineHashOutputFiles(hashFileNames, outputDir);
         	printIds(outputDir);
+        	printTagsAndTaxaMap(pairCount, laneTrack, laneNumAL, outputDir);
         	printListToFile(outputDir+File.separator+"Summary_Stats.txt",summaryOutputs);
         	
     }
     
+    private static void printTagCountMap(TreeMap <String, Integer> tcm, String directoryInfo){
+    	int tempCount=0;
+    	
+    	try {
+        	PrintWriter out = new PrintWriter(
+            		new BufferedWriter(
+            				new FileWriter(
+            						directoryInfo+File.separator+"Tags_Totaled.txt", true)));
+        tempCount=0;
+        	for(String t: tcm.keySet()){
+        		String key = t.toString();
+        		int value = tcm.get(t);
+        		out.println(key+"\t"+value);
+        		tempCount++;
+            	// send update to console so user gets status update
+            	if(tempCount%1000000 == 0){
+            		System.out.println(tempCount+"lines written to file");
+            	}
+        	}
+            out.close();		// close PrintWriter
+        }catch (IOException e) {
+        	 System.out.println(e.getMessage());
+        }
+    }
+    
+    private static void printTagsAndTaxaMap(TreeMap <String, Integer> pc, 
+    		TreeMap<String, Integer> lt, ArrayList <String> al, String directoryInfo){
+    	int tempCount=0;
+    	al.trimToSize();
+    	String arrayOfLanes[] =al.toArray(new String[al.size()]);
+    	int aolSize = arrayOfLanes.length;
+    	
+    	try {
+        	PrintWriter out = new PrintWriter(
+            		new BufferedWriter(
+            				new FileWriter(
+            						directoryInfo+File.separator+"Tags_by_Taxa.txt", true)));
+        tempCount=0;
+        String tbtOutput=null;
+        // WORKING HERE	trying to print out tags and taxa
+        	for(String tag: pc.keySet()){
+        		String key1 = tag.toString();
+        		String value1 = pc.get(tag).toString();       
+        		
+        		tbtOutput=key1;
+        		
+        		for(int i=0;i<aolSize;i++){
+        			if(lt.containsKey(value1+":"+arrayOfLanes[i])){
+        				tbtOutput=tbtOutput+"\t"+arrayOfLanes[i]+":"+lt.get(value1+":"+arrayOfLanes[i]).toString();
+        			}
+        		}
+        		
+        		out.println(tbtOutput);
+          		tempCount++;
+            	// send update to console so user gets status update
+            	if(tempCount%1000000 == 0){
+            		System.out.println(tempCount+"lines written to file");
+            	}
+        	}
+            out.close();		// close PrintWriter
+        }catch (IOException e) {
+        	 System.out.println(e.getMessage());
+        }
+    }
     
     private static void summarizeCounts(String line){
     	summaryOutputs.add(line);
@@ -737,7 +845,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     	String lane = id1[3];
     	String tab="\t";
     	
-    	result = tag+tab+barcodeIDs+tab+flowcell+tab+lane;
+    	result = tag+tab+barcodeIDs+tab+flowcell;
  
     	return result;
     }
@@ -757,14 +865,22 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     	int numberOfCounts=0; // number of times a sequence has been observed
     	String [] arrayNames = names.toArray(new String[names.size()]); // copy list of files to process
     	
-    	TreeMap <String, TreeMap<String, String[]> tagInfo>= new TreeMap<String, TreeMap<String, String[5]>>();
+    	TreeMap <String, TreeMap<String,TreeMap<String, ArrayList<String>>>> tagInfo= 
+    			new TreeMap<String, TreeMap<String,TreeMap<String, ArrayList<String>>>>();
+    	
+    	TreeMap <String, TreeMap<String, ArrayList<String>>> flowcellAndBarcode = 
+    			new TreeMap <String, TreeMap<String, ArrayList<String>>>();
+    	TreeMap <String, ArrayList<String>> barcodeAndLaneCount = new TreeMap <String, ArrayList<String>>();
+
+    	
     	
     	// the following HashMap allows for one key (the sequence string) to hold 
     	// many values (id infomation) via the ArrayList
-    	//HashMap <String, ArrayList<String>> hma = new HashMap<String, ArrayList<String>>();
-    	ArrayList <String> tempArrayList = new ArrayList<String>(); // holds information before addition to HashMap
+    	HashMap <String, ArrayList<String>> hma = new HashMap<String, ArrayList<String>>();
+    	ArrayList <String> laneAndCount = new ArrayList<String>(); // holds information before addition to HashMap
   		int tempCount = 0;  //reporter variable
     	long tempTime=0;	//reporter variable
+    	String tab = "\t"; //formatting help
     	
     	//Reporter
 		tempTime = System.currentTimeMillis();
@@ -785,24 +901,71 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
 	    			 String splitLine[] = lineRead.split("\t"); // parse infomation from incoming file
 	    			 seq = splitLine[0];		
 	    			 barcodeCombo = splitLine[1]; 
-	    			 logIds(barcodeCombo);
-	    			 ids = r1Ids[0]+":"+r1Ids[2]+":"+r1Ids[3]+":"+r1Ids[1]+":"+r2Ids[1]; 
-	    			 numberOfCounts=Integer.parseInt(splitline[3]); // copy the sequence count
+	    			 flowcell = splitLine[2];
+	    			 lane = splitLine[3];	    			 
+	    			 numberOfCounts=Integer.parseInt(splitLine[4]); // copy the sequence count
+	    			 
+	    			// logIds(barcodeCombo);
 	    			 
 	    				 //Check if sequence is part of HashMap
-	    				 if(hma.containsKey(allSeq) ){
+	    				 if(tagInfo.containsKey(seq) ){
+	    					 System.out.println("Here A");
+	    					 if(tagInfo.get(seq).containsKey(flowcell)){
+	    						 System.out.println("Here B");
+	    						 if(tagInfo.get(seq).get(flowcell).containsKey(barcodeCombo)){
+	    							 System.out.println("Here C");
+	    							 HashMap <String, String> observations = new HashMap <String, String>();
+	    							 ArrayList <String> al = tagInfo.get(seq).get(flowcell).get(barcodeCombo);
+	    							 al.trimToSize();
+	    							 Collections.sort(al);
+	    							 for(int k=0;k<al.size();k++){
+	    								 observations.put(al.get(k).substring(0,al.get(k).indexOf(":")), al.get(k).substring(al.get(k).indexOf(":")+1));
+	    							 }
+	    							 
+	    							 if(observations.containsKey(lane)){
+	    								 observations.put(lane,Integer.toString(Integer.parseInt(observations.get(lane))+numberOfCounts));
+	    							 }else{
+	    								 observations.put(lane,  Integer.toString(numberOfCounts));
+	    							 }
+	    								 
+	    						 }else{
+	    							 laneAndCount = new ArrayList<String>();
+	    							 laneAndCount.add(lane+":"+Integer.toString(numberOfCounts));
+	    							 barcodeAndLaneCount.put(barcodeCombo, laneAndCount);
+	    							 flowcellAndBarcode.put(flowcell, barcodeAndLaneCount);
+	    							 tagInfo.put(seq, flowcellAndBarcode);
+	    							 
+	    							// laneAndCount.clear();
+	     							// barcodeAndLaneCount.clear();
+	     							// flowcellAndBarcode.clear();
+	    						 }
+	    					 }else{
+	    						 laneAndCount = new ArrayList<String>();
+    							 laneAndCount.add(lane+":"+Integer.toString(numberOfCounts));
+    							 barcodeAndLaneCount.put(barcodeCombo, laneAndCount);    							 flowcellAndBarcode.put(flowcell, barcodeAndLaneCount);
+	    						 tagInfo.put(seq, flowcellAndBarcode);
+	    						 
+	    						// laneAndCount.clear();
+    							// barcodeAndLaneCount.clear();
+    							// flowcellAndBarcode.clear();
+	    					 }
 	 		            	// get occurences, increment counter, set new value
-	 		            	tempArrayList = new ArrayList(hma.get(allSeq));
-	 		            	tempArrayList.set(0, Integer.toString(Integer.parseInt(tempArrayList.get(0))+numberOfCounts));
-	 		            	tempArrayList.set(1,tempArrayList.get(1)+"\t"+stripRedundant(ids));
-	 		            	hma.put(allSeq, tempArrayList);		
+	 		            	//tempArrayList = new ArrayList(tagInfo.get(allSeq));
+	 		            	//tempArrayList.set(0, Integer.toString(Integer.parseInt(tempArrayList.get(0))+numberOfCounts));
+	 		            	//tempArrayList.set(1,tempArrayList.get(1)+"\t"+stripRedundant(ids));
+	 		            	//hma.put(allSeq, tempArrayList);		
 	 		            }else{
 	 		            	// add new unique line
-	 		            	tempArrayList = new ArrayList<String>();
-	 		            	tempArrayList.add(Integer.toString(numberOfCounts));
-	 		            	tempArrayList.add(ids);
-	 		            	hma.put(allSeq, tempArrayList);
+	 		            	laneAndCount = new ArrayList<String>();
+	 		            	laneAndCount.add(lane+":"+Integer.toString(numberOfCounts));
+	 		            	barcodeAndLaneCount.put(barcodeCombo, laneAndCount);
+	 		            	flowcellAndBarcode.put(flowcell, barcodeAndLaneCount);
+	 		            	tagInfo.put(seq, flowcellAndBarcode);
+	 		            	
 	 		            }
+	    				 
+	    				 
+	    				 
 	    		 }
     		}catch(IOException io) { 
                 System.out.println(io.getMessage());
@@ -816,16 +979,36 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
     	System.out.println("The number of lines to be sent to the output file is " + hma.size());
     	
     	try {
-    		ArrayList value = new ArrayList();
+    		ArrayList <String> lc = new ArrayList<String>();
         	PrintWriter out = new PrintWriter(
             		new BufferedWriter(
             				new FileWriter(
             						directoryInfo+File.separator+"Paired_End_Tags_Info.txt", true)));
         tempCount=0;
-        	for(String h: hma.keySet()){
-            	String key = h.toString();
-            	value= new ArrayList(hma.get(h));
-            	out.println(key+ "\t" + value.get(0).toString()+"\t"+value.get(1).toString());
+        	for(String t: tagInfo.keySet()){
+        		for(String f: tagInfo.get(t).keySet()){
+        			for(String b: tagInfo.get(t).get(f).keySet()){
+        				lc = tagInfo.get(t).get(f).get(b);
+        				lc.trimToSize();
+        				Collections.sort(lc);
+        				int controller = lc.size(); 				
+        				String values=null;
+        				for(int i=0;i<controller;i++){
+        					if(values==null)
+        						values=lc.get(i).toString();
+        					else
+        						values=values+tab+lc.get(i).toString();
+        				}
+        				
+            			out.println(t+tab+f+tab+b+tab+values);
+        			
+        			}
+        		}
+            	      	
+            	
+           // 	out.println(key+ "\t" + value.get(0).toString()+"\t"+value.get(1).toString());
+            	
+            	
             	tempCount++;
             	// send update to console so user gets status update
             	if(tempCount%1000000 == 0){
@@ -833,7 +1016,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
             	}
             }
             out.close();		// close PrintWriter
-            hma.clear();  //force memory release 
+            lc.clear();  //force memory release 
         }catch (IOException e) {
         	 System.out.println(e.getMessage());
         }
@@ -890,7 +1073,8 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
      * 
      * @param id
      */
-    private static void logIds(String id){
+    private static void logIds(String idForward, String idReverse){
+    	String id= idForward+":"+idReverse;
     	
     	if(barcodePairs.containsKey(id)){
     		barcodePairs.put(id, barcodePairs.get(id)+1);
@@ -910,7 +1094,7 @@ String[] hcKeyFiles={"GBS.key","GBS2.key"};
         	PrintWriter out = new PrintWriter(
             		new BufferedWriter(
             				new FileWriter(
-            						directoryInfo+File.separator+"Paired_End__ID_Info.txt", true)));
+            						directoryInfo+File.separator+"Barcode_ID_Info.txt", true)));
         int tempCount=0;
         	for(String h: barcodePairs.keySet()){
             	String key = h.toString();
