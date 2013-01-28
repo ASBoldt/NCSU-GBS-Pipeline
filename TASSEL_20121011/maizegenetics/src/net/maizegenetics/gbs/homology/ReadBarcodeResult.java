@@ -28,6 +28,14 @@ public class ReadBarcodeResult {
         this.taxonName = taxon;
     }
     
+    
+    /*
+     * Add the paddedSequence variable so that it can be directly called upon without bit decoding.
+     * Used by FastqPairedEndToTagCountPlugin.java (NCSU) and a modified ParseBarcodeRead.java (NCSU)
+     * for passing sequences that may contain missing / bad bases (N) in the tag or orignial sequence 
+     * (including barcode region).  This constructor allows for those Ns to be present and counted if
+     * the user wants to count the less stringently tested sequence.
+     */
     public ReadBarcodeResult(long[] read, String paddedSequence, byte length, String taxon) {
         this.read = read;
         this.paddedSequence = paddedSequence;
