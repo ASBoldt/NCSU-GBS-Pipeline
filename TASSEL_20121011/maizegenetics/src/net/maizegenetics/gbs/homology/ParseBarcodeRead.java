@@ -295,23 +295,24 @@ public class ParseBarcodeRead {
         return bestBC;
     }
     
+    /**
+     * Does a string search for the any exact match barcode.  If found
+     * that barcode is returned, otherwise returns null
+     * @param queryS The sequence string to search
+     * @return	The exact match barcode or null if not match is found.
+     */
     private Barcode forceFindBestBarcode(String queryS) {
-    	boolean found=false;
-    	String targetArea = queryS.substring(0, (chunkSize/2));
+    	//boolean found=false;
+    	// assuming chunkSize is 32, look for barcode in first 16 bases
+    	String targetArea = queryS.substring(0, (chunkSize/2));	
     	int counter = theBarcodes.length;
-    	//Barcode bestBC=null;
     	
     	for(int i=0; i<counter;i++){
     		//matches a barcode completely
     		if(targetArea.indexOf(theBarcodes[i].getBarcode())!=-1){
-    			
-    		//	System.out.println(theBarcodes[i].getBarcode());
     			return theBarcodes[i];
-    		//	bestBC=theBarcodes[i];
-    		//	continue;
     		}
     	}
-    //	if(bestBC==null)System.out.println(targetArea);
        return null;
     }
 
@@ -413,17 +414,20 @@ public class ParseBarcodeRead {
     }
     
     /**
-     * Overload
-     * @param seqS
-     * @param qualS
-     * @param fastq
-     * @param minQual
-     * @param lengthToKeep is the minimum acceptable sequence length 
-     * @return If barcode and cut site was found, and the length was acceptable returns the result and processed sequence, 
+     * Scan the submitted sequence and quality score to make sure sequence passes
+     * criteria of having no missing bases (N) in the target tag region. OVERLOAD: A
+     * minimum cut-off value is set here to reject any sequence, regardless of quality,
+     * if it is not the desired length 
+     * @param seqS	The raw sequence from the data file
+     * @param qualS	The quality score from the sequence run
+     * @param fastq	A boolean value that controls if a missing value (N) present in the 
+     * sequence should be cause to immediately reject the sequence for consideration.
+     * @param minQual Logic controller alsong with qualS that is used to check the quality score
+     * @param lengthToKeep The exact acceptable sequence length to keep for further processing
+     * @return If barcode and cut site was found, and the length was acceptable, returns the result and processed sequence, 
      * 		if the barcode and cut site were not found return null
      */
     public ReadBarcodeResult parseReadIntoTagAndTaxa(String seqS, String qualS, boolean fastq, int minQual, int lengthToKeep) {
-    	//System.out.println("here B");
     	long[] read=new long[2];
         if((minQual>0)&&(qualS!=null)) {
             int firstBadBase=BaseEncoder.getFirstLowQualityPos(qualS, minQual);
@@ -436,7 +440,6 @@ public class ParseBarcodeRead {
         if(bestBarcode==null) return null;  //overhang missing so skip
         String genomicSeq=seqS.substring(bestBarcode.barLength, seqS.length());
         ReadBarcodeResult tagProcessingResults = removeSeqAfterSecondCutSite(genomicSeq, (byte)(2*chunkSize));
- //       System.out.println("tagProcessingReults.length: " + tagProcessingResults.length);
         if(tagProcessingResults.length != lengthToKeep) return null; // sequence not desired length
         String hap=tagProcessingResults.paddedSequence;  //this is slow 20% of total time.   Tag, cut site processed, padded with poly-A
 
@@ -450,6 +453,24 @@ public class ParseBarcodeRead {
 
     }
     
+    /**
+     * Modified version of overloaded parseReadIntoTagAndTaxa(String, String, boolean, int, int).  The quality 
+     * and bad base detectiong (presense of Ns) have been bypassed.  This calls upon the forceFindBestBarcode looking
+     * for an exact barcode match since there are possible barcode variants in the keyfile generated to catch
+     * missing or subsituted bases.  Adjustments are made to where the tag starts based on if the enzyme cut side is
+     * immediately after the barcode or if there is 1 base away.  Since missing bases (N) may be present and can't be encoded
+     * properly by other class methods called upon, the tag sequence assignment to the String that feeds the ReadBarcodeResult
+     * methods was changed to handle Strings directly instead of encoding / decoding bits.  The return value is still of type
+     * ReadBarcodeResult, but of an overloaded object that has a String sequence elemt.
+     * @param seqS	The raw sequence from the data file
+     * @param qualS The quality score from the sequence run - BYPASSED
+     * @param fastq A boolean value that controls if a missing value (N) present in the 
+     * sequence should be cause to immediately reject the sequence for consideration.
+     * @param minQual Logic controller alsong with qualS that is used to check the quality score
+     * @param lengthToKeep The exact acceptable sequence length to keep for further processing
+     * @return If all checks and bypasses are sucessful, returns a ReadBarcodeResult object that contains
+     * a direct String variable that holds the tag sequence of interest.
+     */
     public ReadBarcodeResult forceParseReadIntoTagAndTaxa(String seqS, String qualS, boolean fastq, int minQual, int lengthToKeep) {
     	long[] read=new long[2];
         if((minQual>0)&&(qualS!=null)) {
@@ -471,21 +492,15 @@ public class ParseBarcodeRead {
         
         int cutSiteClose= -1;
         cutSiteClose=checkForCutSite(seqS, bestBarcode);
-        //System.out.println(cutSiteClose);
+
         if(cutSiteClose == -1){
         	// cut site not found or within designated parameter
         	return null; 
         }else if(cutSiteClose == 0){
         	// take everything after the barcode 
-        	//System.out.println(cutSiteClose);
-        	//System.out.println(seqS.substring((seqS.indexOf(bestBarcode.getBarcode())+bestBarcode.barLength), seqS.length()));
-        	//System.out.println(seqS.substring(bestBarcode.barLength, seqS.length()));
         	genomicSeq=seqS.substring((seqS.indexOf(bestBarcode.getBarcode())+bestBarcode.barLength), seqS.length());
         }else if(cutSiteClose == 1){
         	// take everything after the barcode +1 nucleotide, should be start of cut site remanant
-        	//System.out.println(cutSiteClose);
-        	//System.out.println(seqS.substring((seqS.indexOf(bestBarcode.getBarcode())+bestBarcode.barLength+1), seqS.length()));
-        	//System.out.println(seqS.substring(bestBarcode.barLength+1, seqS.length()));
         	genomicSeq=seqS.substring((seqS.indexOf(bestBarcode.getBarcode())+bestBarcode.barLength+1), seqS.length());
         }
         
@@ -494,23 +509,19 @@ public class ParseBarcodeRead {
         //ReadBarcodeResult tagProcessingResults = forceRemoveSeqAfterSecondCutSite(genomicSeq, (byte)(2*chunkSize)); 
 
         if(tagProcessingResults.length != lengthToKeep){
-    	//   System.out.println("tagProcessingReults.length: " + tagProcessingResults.length);
     	   return null; // sequence not desired length
        }
-        //if(tagProcessingResults.length <= lengthToKeep) return null; // sequence not desired length
+
         String hap=tagProcessingResults.paddedSequence;  
-        
-        //System.out.println("\n"+hap);
         
         read=BaseEncoder.getLongArrayFromSeq(hap);
         int pos=tagProcessingResults.length;
         //TODO this instantiation should also include the orginal unprocessedSequence, processedSequence, and paddedSequence - the the object encode it 
 
+        // the key below is the string hap is set directly as an unadulterated string that can be accessed by the
+        // calling method directly without conversion to and from bit encoding
         ReadBarcodeResult rbr=new ReadBarcodeResult(read, hap, (byte)pos, bestBarcode.getTaxaName());
 
-      //  System.out.println(rbr.paddedSequence);        
-      //  System.out.println(rbr.toString());
-        
         return rbr; 
 
     }
