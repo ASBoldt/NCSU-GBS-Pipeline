@@ -54,12 +54,13 @@ To Install:
 3. Navigate to that directory from the command line
 4. Execute the following command within the direcotry:
 	git clone git://github.com/conceptstailored/NCSU-GBS-Pipeline.git
-5. This should have copied a directory called "maizegenetics" in your PROGRAM_DIR
-6. Create another directory in your PROGRAM_DIR called "outputs"
-7.  Within PROGRAM_DIR/outputs create two directories: 
+5. This should have copied a directory called "NCSU-GBS-Pipeline" in your PROGRAM_DIR
+6. Create another directory in your
+	 PROGRAM_DIR/NCSU-GBS-Pipeline/TASSEL_20121011/maizegenetics called "outputs"
+7.  Within PROGRAM_DIR/.../outputs create two directories: 
 	/fastq (and copy your fastq files here)
 	/FastqPariedEndTagsAndTaxa (where program outputs will be stored)
-8. Place your key files in  PROGRAM_DIR/outputs
+8. Place your key files in  PROGRAM_DIR/.../outputs
 
 ** This is the bare bones approach to running only the paired end plugin. 
 The TASSEL program can do many other things but requires a bit more setup
@@ -76,16 +77,16 @@ DOCUMENTATION:
 	read1_C116JACXX_s_7_fastq.gz
 
 * To run the paired end plugin, execute the following command (all on one line)
-	via command line from the PROGRAM_DIR/outputs directory.  Optional arguements
+	via command line from the PROGRAM_DIR/.../outputs directory.  Optional arguements
 	are in () and explained in GETTING STARTED TIPS.
 
-	PROGRAM_DIR/maizegenetics/run_pairedEnd_pipeline.pl -[max_memory] 
+	PROGRAM_DIR/.../maizegenetics/run_pairedEnd_pipeline.pl -[max_memory] 
 	-fork1 -[plugin] -i [input_directory] -k [keyfile1:keyfile2] 
 	-e [enzyme1:enzyme2] (-s [maximum_count]) (-c [minimum_detected]) 
 	-o [output_directory] -endPlugin -runfork1
 
 	Working example:
-	PROGRAM_DIR/maizegenetics/run_pairedEnd_pipeline.pl -Xmx30g -fork1 
+	PROGRAM_DIR/.../maizegenetics/run_pairedEnd_pipeline.pl -Xmx30g -fork1 
 	-FastqPairedEndToTagCountPlugin -i fastq -k GBS1.key:GBS2.key 
 	-e PstI-MspI:MspI-PstI -s 10000 -c 10 -o FastqPairedEndTagsAndTaxa 
 	-endPlugin -runfork1
