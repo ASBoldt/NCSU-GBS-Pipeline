@@ -62,7 +62,7 @@ To Install:
 	/FastqPariedEndTagsAndTaxa (where program outputs will be stored)
 8. Place your key files in  PROGRAM_DIR/.../outputs
 
-** This is the bare bones approach to running only the paired end plugin. 
+** This is the bare bones approach to running only the paired end plug-in. 
 The TASSEL program can do many other things but requires a bit more setup
 that can be read about at 
 http://www.maizegenetics.net/tassel/docs/TasselPipelineGBS.pdf
@@ -73,23 +73,26 @@ DOCUMENTATION:
 * Fastq files must be named using the following template
 	read#_flowcell_s_lane#_fastq.gz
 	
-	Working example:
+	Example:
 	read1_C116JACXX_s_7_fastq.gz
 
 * To run the paired end plugin, execute the following command (all on one line)
 	via command line from the PROGRAM_DIR/.../outputs directory.  Optional arguements
 	are in () and explained in GETTING STARTED TIPS.
 
-	PROGRAM_DIR/.../maizegenetics/run_pairedEnd_pipeline.pl -[max_memory] 
+	PROGRAM_DIR/.../maizegenetics/run_gbs_pairedEnd_pipeline.pl -[max_memory] 
 	-fork1 -[plugin] -i [input_directory] -k [keyfile1:keyfile2] 
 	-e [enzyme1:enzyme2] (-s [maximum_count]) (-c [minimum_detected]) 
 	-o [output_directory] -endPlugin -runfork1
 
-	Working example:
-	PROGRAM_DIR/.../maizegenetics/run_pairedEnd_pipeline.pl -Xmx30g -fork1 
+	Example:
+	PROGRAM_DIR/.../maizegenetics/run_gbs_pairedEnd_pipeline.pl -Xmx30g -fork1 
 	-FastqPairedEndToTagCountPlugin -i fastq -k GBS1.key:GBS2.key 
 	-e PstI-MspI:MspI-PstI -s 10000 -c 10 -o FastqPairedEndTagsAndTaxa 
 	-endPlugin -runfork1
+	
+* Alternatively, a bash script with the above command, saved and executed in 
+	the "outputs" directory reduces typing errors.
 	
 * The output files you WANT TO KEEP:
 	* Barcode_ID_Info.txt = number of barcode combinations detected across all lanes
@@ -98,15 +101,15 @@ DOCUMENTATION:
 	* Tags_Totaled.txt = number of unique tags across all lanes
 	* Tags_by_Taxa.txt = number of tags and taxa combination by lane over all lanes
 
-* The plugin does create large intermediate files that can be deleted once the 
+* The plug-in does create large intermediate files that can be deleted once the 
 	program completes.  Any files in PROGRAM_DIR/outputs/FastqPariedEndTagsAndTaxa
 	that start with "read...." and end with ".txt" can be removed to recover disk
 	space.
 	
-* The plugin alters the second key file and stores it as [keyfile2]_mod.key.  
+* The plug-in alters the second key file and stores it as [keyfile2]_mod.key.  
 	Once processing of all data files is complete, this file can and should be 
 	deleted.  If it is left within the directory it will be appended to each time
-	the pluging is run.
+	the plug-in is run.
 
 --------------------------------------------------------------------------------
 GETTING STARTED TIPS:
