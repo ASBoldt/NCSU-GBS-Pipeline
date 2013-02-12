@@ -146,7 +146,8 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
         TreeMap <String, Integer> laneTrack = new TreeMap<String,Integer>();	
         
         ArrayList <String> hashFileNames = new ArrayList<String>(); // stores names of files resulting from HashMap output
-
+        ArrayList <String> flowcellLane = new ArrayList<String>(); //list of all flowcell and lane combinations
+        
         System.out.println(enzyme);
         /* Grab ':' delimited key files */
         String[] keyFileList = parseFlagArgs(keyFileS, ":", "Key File");
@@ -172,7 +173,21 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 //                        \\. escape . so it doesn't mean 'any char' & escape the backslash    
                 System.out.println(fastqFiles[i].getAbsolutePath());
             }
+            
+            // Sets unique flowcell Lane combinations
+            for (int i=0; i<fastqFiles.length; i++) {
+            	String [] fl = fastqFiles[i].getName().split("_");	// split filename by underscore
+            	String tempFL = fl[1]+":"+fl[3];
+            	
+            	if(flowcellLane.indexOf(tempFL)==-1){
+            		flowcellLane.add(tempFL);
+            	}
+            }  
         }
+        
+        
+        
+        
         // check for even number of files
         checkForPairs(indexStartOfRead2);
                          
