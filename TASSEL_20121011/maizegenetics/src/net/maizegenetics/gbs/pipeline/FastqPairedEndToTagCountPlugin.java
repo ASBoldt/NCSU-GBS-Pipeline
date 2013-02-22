@@ -153,7 +153,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
         String[] keyFileList = parseFlagArgs(keyFileS, ":", "Key File");
         String[] enzymeList = parseFlagArgs(enzyme, ":", "enzymes");
         
-        summaryOutputs.add("Total Reads \t Forward Only \t Reverse Only \t Both");
+        summaryOutputs.add("Lane \t Total Reads \t Forward Only \t Reverse Only \t Both");
 
         File inputDirectory = new File(fastqDirectory);
         File[] fastqFiles = DirectoryCrawler.listFiles("(?i).*\\.fq$|.*\\.fq\\.gz$|.*\\.fastq$|.*_fastq\\.txt$|.*_fastq\\.gz$|.*_fastq\\.txt\\.gz$|.*_sequence\\.txt$|.*_sequence\\.txt\\.gz$", inputDirectory.getAbsolutePath());
@@ -177,7 +177,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             // Sets unique flowcell Lane combinations
             for (int i=0; i<fastqFiles.length; i++) {
             	String [] fl = fastqFiles[i].getName().split("_");	// split filename by underscore
-            	String tempFL = fl[1]+":"+fl[3];
+            	String tempFL = fl[1]+"-"+fl[3];
             	
             	if(flowcellLane.indexOf(tempFL)==-1){
             		flowcellLane.add(tempFL);
@@ -254,6 +254,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             ArrayList <String> laneNumAL = new ArrayList<String>(); //track lane numbers
             ArrayList <String> pairedFileNames = new ArrayList<String>(); //track lane names
             String laneID=null;
+            String flowcellAndLane=null;
             String tagsByTaxaFile = "Tags_by_Taxa.txt";
 
             for(int b=0;b<indexStartOfRead2;b++){
@@ -365,6 +366,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 	                                String idF1[]=tempIdF.split(":");
 	                            	String idR2[]=tempIdR.split(":");
 	                            	laneID = idF1[3];	// sets the flowcell lane identification
+	                            	flowcellAndLane= idF1[2]+"-"+idF1[3];
 	                            	
 	                            	// check for the lane ID and add if not present
 	                            	if(laneNumAL.isEmpty()){
@@ -387,14 +389,14 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 	                                 * gets paired with a unique ID that is used to help key to the laneTrack Map
 	                                 */
 	                                if(pairCount.containsKey(concatenation)){
-	                                	if(laneTrack.containsKey(String.valueOf(pairCount.get(concatenation))+":"+laneID)){
-	                                		laneTrack.put(String.valueOf(pairCount.get(concatenation))+":"+laneID, laneTrack.get(String.valueOf(pairCount.get(concatenation))+":"+laneID)+1);
+	                                	if(laneTrack.containsKey(String.valueOf(pairCount.get(concatenation))+":"+flowcellAndLane)){
+	                                		laneTrack.put(String.valueOf(pairCount.get(concatenation))+":"+flowcellAndLane, laneTrack.get(String.valueOf(pairCount.get(concatenation))+":"+flowcellAndLane)+1);
 	                                	}else{
-	                                		laneTrack.put(String.valueOf(pairCount.get(concatenation))+":"+laneID, 1);
+	                                		laneTrack.put(String.valueOf(pairCount.get(concatenation))+":"+flowcellAndLane, 1);
 	                                	}
 	                                }else{
 	                                	pairCount.put(concatenation, uniqueID);
-	                                	laneTrack.put(String.valueOf(uniqueID)+":"+laneID, 1);
+	                                	laneTrack.put(String.valueOf(uniqueID)+":"+flowcellAndLane, 1);
 	                                }
 	                            }
 	                            /*
@@ -410,7 +412,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 	                            }
 	                            // print to console so user gets a snapshot of what's happening and where in the file
 	                            if (allReads % 10000000 == 0) {
-	                            	reportStats(bothGood, goodBarcodedForwardReads, goodBarcodedReverseReads, 
+	                            	reportStats(laneID,bothGood, goodBarcodedForwardReads, goodBarcodedReverseReads, 
 	                            			goodBarcodedReads, allReads);
 	                            }	
 	                        }
@@ -421,7 +423,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 	                    }
 	                    
 	                } 
-	            reportStats(bothGood, goodBarcodedForwardReads, goodBarcodedReverseReads, 
+	            reportStats(laneID,bothGood, goodBarcodedForwardReads, goodBarcodedReverseReads, 
 	            			goodBarcodedReads, allReads);
 	            reportTime();	//reporter
 	 
@@ -429,7 +431,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
                 br2.close();
               
                 // following prints what should be considered an intermediate output file for each lane
-                printTagsAndTaxaByLane(pairCount, laneTrack, laneNumAL, outputDir, outputLaneFilename);
+                printTagsAndTaxaByLane(pairCount, laneTrack, flowcellLane, outputDir, outputLaneFilename);
                 
                 pairCount.clear();
                 laneTrack.clear();
@@ -463,6 +465,8 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
         	while(pairedFileNames.size()>0){
         		combineTBT(tagsByTaxaFile, outputDir, pairedFileNames, tagCount);
         	}
+        	
+        	addEmptyLanesToTBT(tagsByTaxaFile, outputDir, flowcellLane);
 
         	tagCount.clear();  
         	
@@ -552,6 +556,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 	    		
 	    		// check against master list of tags before adding to base compare map
 	    		if(tcm.containsKey(line.substring(0, line.indexOf("\t")))){
+	    			//t1.put(line.substring(0,lastTab), line.substring(lastTab+1));
 	    			t1.put(line.substring(0,lastTab), line.substring(lastTab+1));
 	    		}
 	    	}
@@ -652,6 +657,139 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
     	reportTime();	//reporter
     }
     
+    
+    private static void addEmptyLanesToTBT(String fname, String directoryInfo, ArrayList<String> fcL){
+    	resetTime();	//reporter
+    	System.out.println("\nAdding empty lanes to tags (formatting)");
+    	
+    	File name = new File(directoryInfo+File.separator+fname);
+    	
+    	BufferedReader br;
+    	String line;
+    	String tKey;
+    	String tValue;
+    	int sum=0;
+    	
+    	fcL.trimToSize();
+    	int fcLSize= fcL.size();
+    	ArrayList <String> tempFCL = new ArrayList<String>();
+    	ArrayList <String> tempValue = new ArrayList<String>();
+    	TreeMap <String, String> tbtFormatted = new TreeMap <String, String>();
+    	
+    	try{
+    		// check to see if file exists
+        	//if(name.exists()){
+        		br= new BufferedReader(new InputStreamReader(new FileInputStream(name)));
+        	//}
+        	
+        	while((line=br.readLine())!=null){
+        		tempFCL=new ArrayList<String>(fcL);
+        		String [] breakdown = line.split("\t");
+        		tKey = breakdown[0]+"\t"+breakdown[1];
+        		int fclLength = breakdown.length;
+        		
+        		if((fclLength-2)==fcLSize){
+        			for(int i=2;i<fclLength;i++){
+            			sum = sum +Integer.parseInt(breakdown[i].substring(breakdown[i].indexOf(":")+1)); 
+            		}
+            		
+            		tValue=String.valueOf(sum);
+            		for(int i=2;i<fclLength;i++){
+            			tValue = tValue+"\t"+breakdown[i].substring(breakdown[i].indexOf(":")+1); 
+            		}
+
+            		tbtFormatted.put(tKey, tValue);
+            		tKey=null;
+            		tValue=null;
+            		sum=0;
+        		}else{
+        	//System.out.println(fclLength);
+        	//System.out.println(fcLSize);
+        			for(int i=2; i<(fclLength);i++){
+        				String existingFCL = breakdown[i].substring(0, breakdown[i].indexOf(":"));
+        	//System.out.println(existingFCL);
+        	//System.out.println(tempFCL);
+        				if(tempFCL.contains(existingFCL)){
+        	//System.out.println(tempFCL.indexOf(existingFCL));
+        					tempFCL.remove(tempFCL.indexOf(existingFCL));
+        					tempFCL.trimToSize();
+        				}
+        			}
+        			
+        		//	if(tempFCL.isEmpty()){
+            	//		continue;
+            	//	}else{
+            			for(int i=2; i<(fclLength);i++){
+            				tempValue.add(breakdown[i]);
+            			}
+            			
+            			for(int i=0; i<tempFCL.size();i++){
+            				String temp = tempFCL.get(i).toString();
+            				temp = temp + ":0";
+            				tempValue.add(temp);
+            			}
+            	//	}
+        		tempFCL.clear();
+
+        		tempValue.trimToSize();
+        		String [] tv = tempValue.toArray(new String[tempValue.size()]);
+        		tempValue.clear();
+        		Arrays.sort(tv);
+        		int size = tv.length;
+        		
+        		for(int i=0;i<size;i++){
+        			sum = sum +Integer.parseInt(tv[i].substring(tv[i].indexOf(":")+1)); 
+        		}
+        		
+        		tValue=String.valueOf(sum);
+        		for(int i=0;i<size;i++){
+        			tValue = tValue+"\t"+tv[i].substring(tv[i].indexOf(":")+1); 
+        		}
+        		
+        		tbtFormatted.put(tKey, tValue);
+        		tKey=null;
+        		tValue=null;
+        		sum=0;
+        		}
+        	}
+        }catch (IOException e) {
+          	 System.out.println(e.getMessage());
+       	}
+    	
+    	try{
+        	PrintWriter tbtOut = new PrintWriter(new BufferedWriter(new FileWriter(name, false)));
+        	
+        	String forPrinting = "Tag Sequence"+"\t"+"Barcode Taxa"+"\t"+"Tag by Taxa Sum";
+        	fcL.trimToSize();
+        	for(int i=0;i<fcL.size();i++){
+        		forPrinting = forPrinting + "\t" + fcL.get(i).toString();
+        	}
+        	tbtOut.println(forPrinting);
+        	
+        	int counter=0;
+        	// print map values to file and log barcode information
+        	for(String tbt:tbtFormatted.keySet()){
+        		String key = tbt.toString();
+        		String value = tbtFormatted.get(key);
+        		tbtOut.println(key+"\t"+value);
+        		counter++;
+        		// send update to console so user gets status update
+            	if(counter%10000000 == 0){
+            		System.out.println(counter+" lines written to file");
+            	}
+        	}
+        	tbtOut.close();
+        	tbtFormatted.clear();
+            System.out.println(counter+" lines written to file");
+
+        	}catch (IOException e) {
+           	 System.out.println(e.getMessage());
+            }
+    	
+    	reportTime();	//reporter
+    }    
+    
+    
     /**
      * Parses within element of the input to sum and return a value.
      * @param v String array containing lane and count information in the format "lane:count".
@@ -678,15 +816,16 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
      * single or multiple lane and count information in the format lane:count"\t"lane:count...
      */
     private static void logIds(String k, String v){
-		String [] kSplit = k.split("\t");
+		//String [] kSplit = k.split("\t");
 		String [] vSplit = v.split("\t");
 		
 		//checks for the barcode, if it does not exist, adds it for the first time
 		// if it does, then adjusts the associated value
-		if(barcodePairs.containsKey(kSplit[1])){
-			barcodePairs.put(kSplit[1], barcodePairs.get(kSplit[1])+sumIDs(vSplit));
+	//if(barcodePairs.containsKey(kSplit[1])){
+		if(barcodePairs.containsKey(k)){
+			barcodePairs.put(k, barcodePairs.get(k)+sumIDs(vSplit));
 		}else{
-			barcodePairs.put(kSplit[1], sumIDs(vSplit));
+			barcodePairs.put(k, sumIDs(vSplit));
 		}
 	}
 
@@ -734,7 +873,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 	 * @param lt Stored lane and count information.  Key is a string representation of the unique number
 	 *  that is associated with a tag, a ":" delimeter, and which lane the value information comes from.
 	 *  The value is a count of the number of observations a particular tags ocurred in a lane.
-	 * @param al A list of string representatoins of lanes used to parse the lt Map
+	 * @param al A list of all combinations of flowcell and lanes for all files being processed
 	 * @param directoryInfo System directory information
 	 * @param name Name of the new file
 	 */
@@ -745,8 +884,8 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 
     	int tempCount=0;
     	al.trimToSize();
-    	String arrayOfLanes[] =al.toArray(new String[al.size()]);	//convert ArrayList to String of arrays
-    	int aolSize = arrayOfLanes.length;	// loop controller
+    	String arrayOfFlowcellLanes[] =al.toArray(new String[al.size()]);	//convert ArrayList to String of arrays
+    	int aolSize = arrayOfFlowcellLanes.length;	// loop controller
     	String filename = name;
     	
     	try {
@@ -769,9 +908,9 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
         			 * Should always be true as no lt value should have been set without a pc being set
         			 * first.  
         			 */
-        			if(lt.containsKey(value1+":"+arrayOfLanes[i])){
+        			if(lt.containsKey(value1+":"+arrayOfFlowcellLanes[i])){
         				// concatenate and format the tag information and respective lane and count values
-        				tbtOutput=tbtOutput+"\t"+arrayOfLanes[i]+":"+lt.get(value1+":"+arrayOfLanes[i]).toString();
+        				tbtOutput=tbtOutput+"\t"+arrayOfFlowcellLanes[i]+":"+lt.get(value1+":"+arrayOfFlowcellLanes[i]).toString();
         			}
         		}
         		
@@ -1062,15 +1201,16 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
     
     /**
      * Reporter method that prints stats to the console
+     * @param lane - flowcell lane identifier
      * @param both - a counter that keeps track of the number of times both sequences register as good reads
      * @param forward - a counter that keeps track of the number of times only the forward sequence registers as a good read
      * @param reverse -  a counter that keeps track of the number of times only the reverse sequence registers as a good read
      * @param allGood - a counter that keeps the current total value of all lines read so far
      * @param totalReads - the total number of lines, good or bad, that the program has read so far
      */
-    private static void reportStats(int both, int forward, int reverse, int allGood, int totalReads){
+    private static void reportStats(String lane, int both, int forward, int reverse, int allGood, int totalReads){
     	
-    	String forSummary = Integer.toString(totalReads)+"\t"+Integer.toString(forward)+"\t"+
+    	String forSummary = lane+"\t"+Integer.toString(totalReads)+"\t"+Integer.toString(forward)+"\t"+
     			Integer.toString(reverse)+"\t"+Integer.toString(both);
     	
     	System.out.println("\nTotal Reads in this lane:" + totalReads);
@@ -1104,12 +1244,13 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
     	String tag = forward+reverse;
     	String id1[]=idF.split(":");
     	String id2[]=idR.split(":");
-    	String flowcell = id1[2];
+    	//String flowcell = id1[2];
     	String barcodeIDs = id1[1]+":"+id2[1];
     	String lane = id1[3];
     	String tab="\t";
     	
-    	result = tag+tab+barcodeIDs+tab+flowcell;
+    	//result = tag+tab+barcodeIDs+tab+flowcell;
+    	result = tag+tab+barcodeIDs;
  
     	return result;
     }
