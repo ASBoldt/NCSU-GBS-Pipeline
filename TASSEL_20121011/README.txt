@@ -3,15 +3,21 @@ NCSU Fork of TASSEL for Genotyping by Sequencing
 
 Software version: beta 0.9
 
-Date: 2013-01-31
+Date: 2013-02-21
 
 Legal information:
-This software is provided "AS IS".  Use at your own discretion. 
+This software is provided "AS IS".  Use at your own discretion. Use at your own 
+discretion. It s released under the GNU Lesser GPL v 2
 
 Contact information:
 Ross Whetten (ross_whetten@ncsu.edu)
 
 ================================================================================
+The documents "Instructions" and "Amazon EC2 script setup" found in the same
+directory as this README provide more details and instructions to setting up
+and running this program.
+=================================================================================
+
 This program / pipeline was built as a tool for streamlining the processing of 
 genotyping by sequencing data. It is a fork of the TASSEL software developed and 
 made available by the USDA-ARS Lab with Cornell's Institute for Genomic Diversity 
@@ -40,10 +46,26 @@ STORAGE: A minimum size of space at least 1/4 the combined size of the
 	, have 20GB free.
 
 Software:
-* java 1.6+ (http://www.java.com)
+* Oracle Java 1.7 (http://www.java.com)
 * git 1.7+ (http://git-scm.com/)
+* cd-hit-est for clustering of tags (available in Debian-Med repository and using 
+the Amazon EC3 setup script) 
 
 ================================================================================
+FILE PREPARATIONS
+
+KeyFile Example:
+The key file will need to be in the following tab-delimited format:
+	Flowcell	Lane	Barcode	Sample	PlateName	Row	Column	 Blank
+	C116KACXX	7	ACTCCACG	gbs	GBS1	A	1	Blank
+	…
+
+FASTQ Files:
+FASTQ files must be named using the following convention
+	read#_flowcell_s_lane#_fastq.gz
+	Example:  read1_C116JACXX_s_7_fastq.gz
+================================================================================
+	
 INSTALLATION INSTRUCTIONS
 
 To Install:
@@ -137,13 +159,13 @@ GETTING STARTED TIPS:
 	using the same keyfile for both reads.  The name doesn't matter, so you 
 	could enter file1.key:file1.key and that would be accepted.
 	
-* Enzymes and keyfiles need to be separated by a ":".
+* Enzymes and keyfiles need to be separated by a ":"
 
 
 ================================================================================
 Important known bugs, problems, or limitations:
 
-2013-01-31: 
+2013-02-21: 
 * Software has only been tested with 2 lanes of data (4 read files).
 	In theory it should be able to handle many lanes with the limitations being
 	system ram and hard drive space.
@@ -153,10 +175,6 @@ Important known bugs, problems, or limitations:
 * You must provide 2 key files even if they are identical
 
 * intermediate files are written to the same output directory as summary data
-
-* Summary_Stats.txt output doesn't label lane information.  Lanes are processed in
-	numeric order so they are written to file that way, but it needs to be 
-	explicitly added
 	
 * There is no check for the presence of an already modified second key file.  The 
 	altered file needs to be manually removed after each call to the plugin
