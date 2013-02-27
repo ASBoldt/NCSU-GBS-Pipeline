@@ -967,6 +967,11 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 	    		currentLine++;
 	    		if(currentLine==1){
 	    			System.out.println("Begin modifications to key file");
+	    		}else if(keyContents.trim().length()==0){
+	    			// check if the line is empty and skip so no out of bounds execption is thrown
+	    			System.out.println("\n\tBE AWARE YOU HAVE AN EMPTY LINE IN YOUR READ 2 KEY FILE. " +
+	    					"SKIPPING EMPTY LINE AND CONTINUING.\n");
+	    			break;
 	    		}else{
 	    			// Expectation is that the barcode information is the 3rd element
 	    			String splitKeyLine[] = keyContents.split("\t");
