@@ -541,12 +541,16 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
     	try{
 	    	// check to see if a TBT file has been started
 	    	if(tbtName.exists()){
-	    		// call on method to process one more file
+	    		// process one more file
 	    		b1= new BufferedReader(new InputStreamReader(new FileInputStream(tbtName)));
 	    		b2= new BufferedReader(new InputStreamReader(new FileInputStream(directoryInfo+File.separator+names.get(alsize-1))));
 	    		removeOne=true;
+	    	}else if(alsize==1){
+	    		// set reader to process only one file
+	    		b1= new BufferedReader(new InputStreamReader(new FileInputStream(directoryInfo+File.separator+names.get(alsize-1))));
+	    		b2= null;
 	    	}else{
-	    		// call on method to process last 2 files, should only come here once, first
+	    		// process last 2 files, should only come here once, first if more than 2 files
 	    		b1= new BufferedReader(new InputStreamReader(new FileInputStream(directoryInfo+File.separator+names.get(alsize-2))));
 	    		b2= new BufferedReader(new InputStreamReader(new FileInputStream(directoryInfo+File.separator+names.get(alsize-1))));
 	    	}
