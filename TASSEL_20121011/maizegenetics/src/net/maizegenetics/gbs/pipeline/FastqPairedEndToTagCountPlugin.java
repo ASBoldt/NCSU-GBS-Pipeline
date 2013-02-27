@@ -568,55 +568,58 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 	    	line=null;
 	    	
 	    	// adds content from 2nd file to Map with contents of first file
-	    	while((line=b2.readLine())!=null){
-	    		lastTab=line.lastIndexOf("\t");
-	    		ArrayList <String> together = new ArrayList<String>();
-	    		
-	    		/*
-	    		 * If tag and barcode exist, get the lane(s) and value(s) associated with them, add new
-	    		 * lane(s) and value(s) from line being processed.  Concatenate the lane(s) and value(s)
-	    		 * with formatting, append to tag and barcode, then overwrite the previously exsiting
-	    		 * tag by taxa by count information with newly processed string.
-	    		 */
-	    		if(t1.containsKey(line.substring(0,lastTab))){
-	    			String [] existing= t1.get(line.substring(0,lastTab)).toString().split("\t");  // get exisitng lane:count
-	 				// retrieves lane:value string skipping formatting "\t"
-	    			for(int i=0;i<existing.length;i++){
-	 					if(i%2==0){
-	 						together.add(existing[i]);
-	 					}
-	 				}
-	 	
-	    			String [] additions = line.substring(lastTab+1).split("\t"); // get new lane:count info to add
-	    			
-	    			// retrieves lane:value string skipping formatting "\t"
-	    			for(int j=0;j<additions.length;j++){
-	 					if(j%2==0){
-	 						together.add(additions[j]);
-	 					}
-	 				}
-	    			
-	    			together.trimToSize();
-	    			String [] togetherArray = together.toArray(new String[together.size()]); 	//populate array with lane:count values
-	    			Arrays.sort(togetherArray);
-	    			String togetherLine = togetherArray[0];	//assign first set of values, there should always be at least one
-	    			
-	    			// concatenate with formatting the rest of the lane:count values
-	    			for(int k=1;k<togetherArray.length;k++){
-	    				togetherLine = togetherLine+"\t"+togetherArray[k];
-	    			}
-	    			t1.put(line.substring(0,lastTab), togetherLine);	// overwrite previously exisintg information with new values
-	    		}else{
-	    			// check against master list of tags before adding to base compare map
-		    		if(tcm.containsKey(line.substring(0, line.indexOf("\t")))){
-		    			t1.put(line.substring(0,lastTab), line.substring(lastTab+1));
-		    		}    		
-	    		}
-	    	}
-	    	b2.close();   	
+	    	if(b2 != null){
+		    	while((line=b2.readLine())!=null){
+		    		lastTab=line.lastIndexOf("\t");
+		    		ArrayList <String> together = new ArrayList<String>();
+		    		
+		    		/*
+		    		 * If tag and barcode exist, get the lane(s) and value(s) associated with them, add new
+		    		 * lane(s) and value(s) from line being processed.  Concatenate the lane(s) and value(s)
+		    		 * with formatting, append to tag and barcode, then overwrite the previously exsiting
+		    		 * tag by taxa by count information with newly processed string.
+		    		 */
+		    		if(t1.containsKey(line.substring(0,lastTab))){
+		    			String [] existing= t1.get(line.substring(0,lastTab)).toString().split("\t");  // get exisitng lane:count
+		 				// retrieves lane:value string skipping formatting "\t"
+		    			for(int i=0;i<existing.length;i++){
+		 					if(i%2==0){
+		 						together.add(existing[i]);
+		 					}
+		 				}
+		 	
+		    			String [] additions = line.substring(lastTab+1).split("\t"); // get new lane:count info to add
+		    			
+		    			// retrieves lane:value string skipping formatting "\t"
+		    			for(int j=0;j<additions.length;j++){
+		 					if(j%2==0){
+		 						together.add(additions[j]);
+		 					}
+		 				}
+		    			
+		    			together.trimToSize();
+		    			String [] togetherArray = together.toArray(new String[together.size()]); 	//populate array with lane:count values
+		    			Arrays.sort(togetherArray);
+		    			String togetherLine = togetherArray[0];	//assign first set of values, there should always be at least one
+		    			
+		    			// concatenate with formatting the rest of the lane:count values
+		    			for(int k=1;k<togetherArray.length;k++){
+		    				togetherLine = togetherLine+"\t"+togetherArray[k];
+		    			}
+		    			t1.put(line.substring(0,lastTab), togetherLine);	// overwrite previously exisintg information with new values
+		    		}else{
+		    			// check against master list of tags before adding to base compare map
+			    		if(tcm.containsKey(line.substring(0, line.indexOf("\t")))){
+			    			t1.put(line.substring(0,lastTab), line.substring(lastTab+1));
+			    		}    		
+		    		}
+		    	}
+		    	b2.close(); 
+	    	}  	
     	}catch (IOException e) {
        	 System.out.println(e.getMessage());
     	}
+    	
     	
     	try{
     	PrintWriter tbtOut = new PrintWriter(new BufferedWriter(new FileWriter(tbtName, false)));
