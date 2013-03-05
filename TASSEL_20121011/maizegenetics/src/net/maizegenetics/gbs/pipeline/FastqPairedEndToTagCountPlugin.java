@@ -45,6 +45,8 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
     String directoryName=null;
     String keyfile=null;
     String enzyme = null;
+    static String keyFileMod = null; // user input from CLI on whether to modify read2 barcodes
+    static String wiid = null;	// trigger for switch to determine which method to use for read2 identification, String type because don't want to modify arg parser to handle ints
     int maxGoodReads = 0;	// can be set by user args, left at 0 means process entire file
     int minCount =1;	// can be set by user args, left at 1 means count everything
     String outputDir=null;
@@ -63,14 +65,20 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
     private void printUsage(){
         logger.info(
              "\n\nUsage is as follows:\n"
-            + " -i  Input directory containing FASTQ files in text or gzipped text.\n"
-            + "     NOTE: Directory will be searched recursively and should\n"
-            + "     be written WITHOUT a slash after its name.\n\n"
-            + " -k  Key file listing barcodes distinguishing the samples\n"
-            + " -e  Enzyme used to create the GBS library, if it differs from the one listed in the key file.\n"
-            + " -s  Max good reads per lane. (Optional. Default will try to process entire file).\n"
-            + " -c  Minimum tag count (default is 1).\n"
-            + " -o  Output directory to contain .cnt files (one per FASTQ file, defaults to input directory).\n\n"
+            + " -i  	Input directory containing FASTQ files in text or gzipped text.\n"
+            + "    			NOTE: Directory will be searched recursively and should\n"
+            + "    			be written WITHOUT a slash after its name.\n\n"
+            + " -k 	Key file listing barcodes distinguishing the samples\n"
+            + " -km 	Specify if you want to modify your read2 barcodes as in the documentation (yes/no)\n"
+            + " -wiid  	How are you barcoding or indexing your reads?:\n"
+            + "				1 - Barcode(s) in read1 only\n"
+            + "				2 - Barcode(s) in both read1 and read2\n"
+            + "				3 - Illumina indexing in read2 header only\n"
+            + "				4 - Illumina indexing in read1 and read2 header\n"
+            + " -e 	Enzyme used to create the GBS library, if it differs from the one listed in the key file.\n"
+            + " -s 	Max good reads per lane. (Optional. Default will try to process entire file).\n"
+            + " -c 	Minimum tag count (default is 1).\n"
+            + " -o	Output directory to store results.\n\n"
         );
     }
 
@@ -99,6 +107,8 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
                 engine.add("-s", "--max-reads", true);
                 engine.add("-c", "--min-count", true);
                 engine.add("-o", "--output-file", true);
+                engine.add("-km", "--key-modification", true);
+                engine.add("-wiid", "--where-is-identification", true);
                 engine.parse(args);
             }
 
@@ -108,6 +118,12 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             if(engine.getBoolean("-k")){ keyfile = engine.getString("-k");}
             else{ printUsage(); throw new IllegalArgumentException("Please specify a barcode key file.");}
 
+            if(engine.getBoolean("-km")){ keyFileMod = engine.getString("-km");}
+            else{ printUsage(); throw new IllegalArgumentException("Please specify if you want to have the read2 barcodes modified as described in the documentation.");}
+            
+            if(engine.getBoolean("-wiid")){ wiid = engine.getString("-wiid");}
+            else{ printUsage(); throw new IllegalArgumentException("Please specify where your indentifiers are located.");}
+            
             if(engine.getBoolean("-e")){ enzyme = engine.getString("-e"); }
             else{ 
                 System.out.println("No enzyme specified.  Using enzyme listed in key file.");
@@ -185,9 +201,6 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             }  
         }
         
-        
-        
-        
         // check for even number of files
         checkForPairs(indexStartOfRead2);
                          
@@ -241,8 +254,12 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 		
 			fileNum=0;
 
+			// Checks if user wanted read2 keyfile barcodes modified
+			System.out.println(keyFileMod);
+			if(keyFileMod.equals("yes")){
 			keyFileList[1]=modifyKey2File(keyFileList[1]);
-
+			}
+			
  			/* 
  			 * Reads the key file and store the expected barcodes for a lane.
  			 * Set to a length of 2 to hold up to two key files' worth of information.
@@ -1206,7 +1223,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
      */
     private static void checkForPairs(int numberOfPairs){
     	if (numberOfPairs % 2 !=0){
-    		System.out.println("There are an odd number of files so there won't be correct pairing"); 
+    		System.out.println("There are an odd number of files so there might be problems assigning keyfiles"); 
     		System.out.println("The number of files detected was "+numberOfPairs); 
         }
     }
