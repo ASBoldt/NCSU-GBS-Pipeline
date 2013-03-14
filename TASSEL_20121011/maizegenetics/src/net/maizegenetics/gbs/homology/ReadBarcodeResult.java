@@ -42,6 +42,18 @@ public class ReadBarcodeResult {
         this.length = length;
         this.taxonName = taxon;
     }
+    
+    /**
+     * Used when read isn't identified by taxon in a key file
+     * @param read
+     * @param paddedSequence
+     * @param length
+     */
+    public ReadBarcodeResult(long[] read, String paddedSequence, byte length) {
+        this.read = read;
+        this.paddedSequence = paddedSequence;
+        this.length = length;
+    }
 
     public ReadBarcodeResult(String sequence){
         unprocessedSequence = sequence;
