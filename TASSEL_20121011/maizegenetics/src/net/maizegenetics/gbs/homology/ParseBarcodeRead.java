@@ -450,7 +450,6 @@ public class ParseBarcodeRead {
         ReadBarcodeResult rbr=new ReadBarcodeResult(read, (byte)pos, bestBarcode.getTaxaName());
 
         return rbr; 
-
     }
     
     /**
@@ -523,7 +522,66 @@ public class ParseBarcodeRead {
         ReadBarcodeResult rbr=new ReadBarcodeResult(read, hap, (byte)pos, bestBarcode.getTaxaName());
 
         return rbr; 
+    }
+    
+    
+    public ReadBarcodeResult noBarcodeKeyParseReadIntoTagAndTaxa(String seqS, String qualS, boolean fastq, int minQual, int lengthToKeep) {
+    	long[] read=new long[2];
+        if((minQual>0)&&(qualS!=null)) {
+            int firstBadBase=BaseEncoder.getFirstLowQualityPos(qualS, minQual);
+            if(firstBadBase<(maxBarcodeLength+(2*chunkSize))) return null;  
+        }
+        
+        int miss = -1;
+        if (fastq) { miss=seqS.indexOf('N'); } else { miss=seqS.indexOf('.'); }
+        
+        if(miss!=-1)System.out.println(miss);
+        
+        if((miss!=-1)&&(miss<(maxBarcodeLength+2*chunkSize))) return null;  //bad sequence
+        
+      //  Barcode bestBarcode=forceFindBestBarcode(seqS);
+      //  if(bestBarcode==null) return null;  //barcode missing
+        
+        String genomicSeq=null;
+        
+        int cutSiteClose= -1;
+        cutSiteClose=checkForCutSite(seqS);  // look only for cut site near begining of sequence
 
+        if(cutSiteClose == -1){
+        	// cut site not found or within designated parameter
+        	return null; 
+        }else{
+        	genomicSeq=seqS.substring(cutSiteClose, seqS.length());
+        }
+        
+        //else if(cutSiteClose == 0){
+        	// take everything after the barcode 
+        //	genomicSeq=seqS.substring((seqS.indexOf(bestBarcode.getBarcode())+bestBarcode.barLength), seqS.length());
+        //}else if(cutSiteClose == 1){
+        	// take everything after the barcode +1 nucleotide, should be start of cut site remanant
+        //	genomicSeq=seqS.substring((seqS.indexOf(bestBarcode.getBarcode())+bestBarcode.barLength+1), seqS.length());
+        //}
+        
+        //this is slow 20% of total time.   Tag, cut site processed, padded with poly-A
+        ReadBarcodeResult tagProcessingResults = removeSeqAfterSecondCutSite(genomicSeq, (byte)(2*chunkSize));
+        //ReadBarcodeResult tagProcessingResults = forceRemoveSeqAfterSecondCutSite(genomicSeq, (byte)(2*chunkSize)); 
+
+        if(tagProcessingResults.length != lengthToKeep){
+    	   return null; // sequence not desired length
+       }
+
+        String hap=tagProcessingResults.paddedSequence;  
+        
+        read=BaseEncoder.getLongArrayFromSeq(hap);
+        int pos=tagProcessingResults.length;
+        String enzymeID=setCutSiteAsID();
+
+        // the key below is the string hap is set directly as an unadulterated string that can be accessed by the
+        // calling method directly without conversion to and from bit encoding, the variable theEnzyme is used 
+        // to placehold an identifier since the data does not have a separate set of barcode identifiers
+        ReadBarcodeResult rbr=new ReadBarcodeResult(read, hap, (byte)pos, enzymeID);
+
+        return rbr; 
     }
     
     private int checkForCutSite(String seq, Barcode bar){
@@ -547,6 +605,45 @@ public class ParseBarcodeRead {
 		//System.out.println(targetArea);
     	//System.out.println(response);
     	return response;
+    }
+    
+    private int checkForCutSite(String seq){
+    	int response=-1;
+    	int areaToScan = initialCutSiteRemnant[0].length()+1;
+    	String seqBegin = seq.substring(0,(chunkSize/2)+areaToScan);
+    //	int indexOfBar = seqBegin.indexOf(bar.getBarcode());
+    //	String targetArea = seqBegin.substring((indexOfBar+bar.barLength),(indexOfBar+areaToScan+bar.barLength));
+    	int present = -1;
+    	
+    	present = seqBegin.indexOf(initialCutSiteRemnant[0]);
+    	
+   // 	if (present!=-1 && present==0){
+   // 		response=0;
+   // 	}else if(present!=-1 && present==1){
+   // 		response=present;
+   // 	}
+    	
+    	if (present!=-1){
+    		response=present;
+    	}
+    	
+    	//System.out.println(seqBegin);
+		//System.out.println(targetArea);
+    	//System.out.println(response);
+    	return response;
+    }
+    
+    
+    private String setCutSiteAsID(){
+    	String id=null;
+    	for(int i=0;i<initialCutSiteRemnant.length;i++){
+    		if(id==null){
+    			id=initialCutSiteRemnant[i];
+    		}else{
+    		id=id+initialCutSiteRemnant[i];
+    		}
+    	}
+    	return id;
     }
     
     public int getBarCodeCount() {
