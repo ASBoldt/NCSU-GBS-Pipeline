@@ -47,6 +47,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
     String enzyme = null;
     static String keyFileMod = null; // user input from CLI on whether to modify read2 barcodes
     static String wiid = null;	// trigger for switch to determine which method to use for read2 identification, String type because don't want to modify arg parser to handle ints
+    static int wiidInt=0;
     int maxGoodReads = 0;	// can be set by user args, left at 0 means process entire file
     int minCount =1;	// can be set by user args, left at 1 means count everything
     String outputDir=null;
@@ -121,7 +122,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             if(engine.getBoolean("-km")){ keyFileMod = engine.getString("-km");}
             else{ printUsage(); throw new IllegalArgumentException("Please specify if you want to have the read2 barcodes modified as described in the documentation.");}
             
-            if(engine.getBoolean("-wiid")){ wiid = engine.getString("-wiid");}
+            if(engine.getBoolean("-wiid")){ wiid = engine.getString("-wiid"); wiidInt=Integer.parseInt(wiid);}
             else{ printUsage(); throw new IllegalArgumentException("Please specify where your indentifiers are located.");}
             
             if(engine.getBoolean("-e")){ enzyme = engine.getString("-e"); }
@@ -363,19 +364,27 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 	                             * comment-out the line commented as lenient and un-comment the line marked stringent for rr[1]
 	                             * in the next few lines (directly below and lines 5+6 in the first if-statement.
 	                             */
-	                            rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);	// stringent
-	                            rr[1] = thePBR[1].forceParseReadIntoTagAndTaxa(sequenceR, qualityScoreR, false, 0,64);	// lenient,accepts N bases
-	                            //rr[1] = thePBR[1].parseReadIntoTagAndTaxa(sequenceR, qualityScoreR, true, 0,64);	// stringent
 	                            
+	                            switch(wiidInt){
+	                            case 1: rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);	// stringent
+		                            	rr[1] = thePBR[1].noBarcodeKeyParseReadIntoTagAndTaxa(sequenceR, qualityScoreR, false, 0,64);	// lenient,accepts N bases
+		                            	//rr[1] = thePBR[1].parseReadIntoTagAndTaxa(sequenceR, qualityScoreR, true, 0,64);	// stringent
+		                            	break;
+	                            case 2: rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);	// stringent
+		                            	rr[1] = thePBR[1].forceParseReadIntoTagAndTaxa(sequenceR, qualityScoreR, false, 0,64);	// lenient,accepts N bases
+		                            	//rr[1] = thePBR[1].parseReadIntoTagAndTaxa(sequenceR, qualityScoreR, true, 0,64);	// stringent
+		                            	break;
+	                            }
 	                            if (rr[0] != null && rr[1] !=null){
 	                                goodBarcodedReads+=2;	
 	                                bothGood++;	// increment the lane counter
 	                                uniqueID++;	//increment the unique couter
+	                                
 	                                tempSeqF=rr[0].toString().substring(0,64);
 	                                tempIdF = rr[0].toString().substring(65);
+	                                
 	                                tempSeqR=rr[1].paddedSequence;  // lenient, correctly handles Ns present in sequence
 	                                //tempSeqR=rr[1].toString().substring(65);  // uncomment if stringent is being used
-
 	                                tempIdR = rr[1].toString().substring(65);
 	                                
 	                                concatenation=stitch(tempSeqF, tempSeqR, tempIdF, tempIdR);
