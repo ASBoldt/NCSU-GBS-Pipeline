@@ -72,10 +72,15 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             + " -k 	Key file listing barcodes distinguishing the samples\n"
             + " -km 	Specify if you want to modify your read2 barcodes as in the documentation (yes/no)\n"
             + " -wiid  	How are you barcoding or indexing your reads?:\n"
-            + "				1 - Barcode(s) in read1 only\n"
-            + "				2 - Barcode(s) in both read1 and read2\n"
-            + "				3 - Illumina indexing in read2 header only\n"
-            + "				4 - Illumina indexing in read1 and read2 header\n"
+            + "				1 - Barcode in read1 only (strict on read2 sequence)\n"
+            + "				2 - Barcode in read1 only (lenient on read2 sequence)\n"
+            + "				3 - Barcodes in both read1 and read2 (strict on read2 sequence)\n"
+            + "				4 - Barcodes in both read1 and read2 (lenient on read2 sequence)\n"
+            + "				5 - Barcode in read1 and Illumina indexing (CASAVA 1.4-1.7 format) in read2 header (strict on read2 sequence)\n"
+            + "				6 - Barcode in read1 and Illumina indexing (CASAVA 1.4-1.7 format) in read2 header (lenient on read2 sequence)\n"
+            + "				7 - Barcode in read1 and Illumina indexing (CASAVA 1.8 format) in read2 header (lenient on read2 sequence)\n"
+            + "				8 - Barcode in read1 and Illumina indexing (CASAVA 1.8 format) in read2 header (lenient on read2 sequence)\n"
+            + "				9 - Barcode in read1 only (lenient on read1, no checks on read2)\n"
             + " -e 	Enzyme used to create the GBS library, if it differs from the one listed in the key file.\n"
             + " -s 	Max good reads per lane. (Optional. Default will try to process entire file).\n"
             + " -c 	Minimum tag count (default is 1).\n"
@@ -122,8 +127,13 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             if(engine.getBoolean("-km")){ keyFileMod = engine.getString("-km");}
             else{ printUsage(); throw new IllegalArgumentException("Please specify if you want to have the read2 barcodes modified as described in the documentation.");}
             
-            if(engine.getBoolean("-wiid")){ wiid = engine.getString("-wiid"); wiidInt=Integer.parseInt(wiid);}
-            else{ printUsage(); throw new IllegalArgumentException("Please specify where your indentifiers are located.");}
+            if(engine.getBoolean("-wiid")){ 
+            	wiid = engine.getString("-wiid"); 
+            	if(Integer.parseInt(wiid)<6 && Integer.parseInt(wiid)>0){
+            		wiidInt=Integer.parseInt(wiid);
+            	}else{ printUsage(); throw new IllegalArgumentException("Please select an option between 1-6.");}
+            }
+            else{ printUsage(); throw new IllegalArgumentException("Please specify how you are identifying your tags.");}
             
             if(engine.getBoolean("-e")){ enzyme = engine.getString("-e"); }
             else{ 
@@ -286,22 +296,25 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 					}		
 					
 					if(fileReadInfo[0][b][0]!=null && fileReadInfo[i][b].length==5) {
-						thePBR[i]=new ParseBarcodeRead(
-								keyFileList[which], enzymeList[which], fileReadInfo[i][b][1], fileReadInfo[i][b][3]);
+					//	if(wiidInt==3 && i%2!=0){
+					//			thePBR[i]=new ParseBarcodeRead(
+					//				enzymeList[which], fileReadInfo[i][b][1], fileReadInfo[i][b][3]);
+					thePBR[i]=new ParseBarcodeRead(
+									keyFileList[which], enzymeList[which], fileReadInfo[i][b][1], fileReadInfo[i][b][3]);
 					}
 					else {
 					 printParsingError();
 					 continue;
 					}
 				}
-		
+
 				for(int i=0;i<thePBR.length;i++){
 					System.out.println("\nTotal barcodes found in lane:"+thePBR[i].getBarCodeCount());
 					if(thePBR[i].getBarCodeCount() == 0){
-		                System.out.println("No barcodes found.  Skipping this flowcell lane " +fileReadInfo[i][b][3]+"."); continue;
-		            }
+						System.out.println("No barcodes found.  Skipping this flowcell lane " +fileReadInfo[i][b][3]+"."); continue;
+			            }
 				}
-	
+
 				try{
 	                //Read in fastq file as a gzipped text stream if its name ends in ".gz", otherwise read as text
 	                if(fastqFiles[b].getName().endsWith(".gz")){
@@ -331,6 +344,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 	                String concatenation=null;
 	                String hiseqID=null; // captures reverse ID from raw sequence file
 	                String outputLaneFilename = fastqFiles[b].getName() + "-" + fastqFiles[b+indexStartOfRead2].getName()+".txt";
+	                String indexBC = null; // used to hold index parsed out of header lines
 	                
 	                int bothGood=0;	// keeps count of good pairs within a lane of data
 	                int currLine=0;
@@ -365,26 +379,60 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 	                             * in the next few lines (directly below and lines 5+6 in the first if-statement.
 	                             */
 	                            
+	                            
+	                            
 	                            switch(wiidInt){
+	                            // case 1 and 2 read the barcode from read1 only, returning the cut site remnant from read2 as identifier
 	                            case 1: rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);	// stringent
-		                            	rr[1] = thePBR[1].noBarcodeKeyParseReadIntoTagAndTaxa(sequenceR, qualityScoreR, false, 0,64);	// lenient,accepts N bases
-		                            	//rr[1] = thePBR[1].parseReadIntoTagAndTaxa(sequenceR, qualityScoreR, true, 0,64);	// stringent
+	                            		rr[1] = thePBR[1].parseReadIntoTagAndTaxaNoBarcode(sequenceR, qualityScoreR, true, 0,64);	// stringent
 		                            	break;
 	                            case 2: rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);	// stringent
-		                            	rr[1] = thePBR[1].forceParseReadIntoTagAndTaxa(sequenceR, qualityScoreR, false, 0,64);	// lenient,accepts N bases
-		                            	//rr[1] = thePBR[1].parseReadIntoTagAndTaxa(sequenceR, qualityScoreR, true, 0,64);	// stringent
+                            			rr[1] = thePBR[1].parseReadIntoTagAndTaxaNoBarcode(sequenceR, qualityScoreR, false, 0,64);	// lenient,accepts N bases
+                            			break;
+                            	// case 3 and 4 read barcodes from both read files and uses both barcodes as identifiers
+	                            case 3: 
+	                            		rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);	// stringent
+		                            	rr[1] = thePBR[1].parseReadIntoTagAndTaxaFlexible(sequenceR, qualityScoreR, true, 0,64);	// stringent
+		                            	break;
+	                            case 4: rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);	// stringent
+		                            	rr[1] = thePBR[1].parseReadIntoTagAndTaxaFlexible(sequenceR, qualityScoreR, false, 0,64);	// lenient,accepts N bases
+		                            	break;
+		                        // case 5-8 read the barcode from read1 and use the index sequence in the header to identify read2    	
+	                            case 5: indexBC = parseHeader1_4(hiseqID);
+	                            		rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);	// stringent
+		                            	rr[1] = thePBR[1].parseReadIntoTagAndTaxaHeader(indexBC,sequenceR, qualityScoreR, true, 0,64);	// stringent
+		                            	break;
+	                            case 6: indexBC = parseHeader1_4(hiseqID);
+	                            		rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);	// stringent
+		                            	rr[1] = thePBR[1].parseReadIntoTagAndTaxaHeader(indexBC,sequenceR, qualityScoreR, false, 0,64);	// lenient,accepts N bases
+		                            	break;
+	                            case 7: indexBC = parseHeader1_8(hiseqID);
+	                            		rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);	// stringent
+		                            	rr[1] = thePBR[1].parseReadIntoTagAndTaxaHeader(indexBC,sequenceR, qualityScoreR, true, 0,64);	// stringent
+		                            	break;
+		                        case 8: indexBC = parseHeader1_8(hiseqID);
+		                        		rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);	// stringent
+		                            	rr[1] = thePBR[1].parseReadIntoTagAndTaxaHeader(indexBC,sequenceR, qualityScoreR, false, 0,64);	// lenient,accepts N bases
+		                            	break;
+		                        // case 9 loosens stringency on read1 and ignore any quality checks on read2, returning the first 64 bases of raw sequence
+		                        case 9: rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, false, 0,64);	// lenient
+		                        		rr[1] = thePBR[1].parseReadIntoTagAndTaxaHeadPoorSeq(indexBC,sequenceR, qualityScoreR, true, 0,64);	// grabs first 64 bases
 		                            	break;
 	                            }
 	                            if (rr[0] != null && rr[1] !=null){
 	                                goodBarcodedReads+=2;	
 	                                bothGood++;	// increment the lane counter
 	                                uniqueID++;	//increment the unique couter
-	                                
+
 	                                tempSeqF=rr[0].toString().substring(0,64);
 	                                tempIdF = rr[0].toString().substring(65);
 	                                
+	                                // check if stringent or lenient being used to determine where id information is stored
+	                                if(wiidInt%2==0){
 	                                tempSeqR=rr[1].paddedSequence;  // lenient, correctly handles Ns present in sequence
-	                                //tempSeqR=rr[1].toString().substring(65);  // uncomment if stringent is being used
+	                                }else{
+	                                tempSeqR=rr[1].toString().substring(65);  // uncomment if stringent is being used
+	                                }
 	                                tempIdR = rr[1].toString().substring(65);
 	                                
 	                                concatenation=stitch(tempSeqF, tempSeqR, tempIdF, tempIdR);
@@ -393,7 +441,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 	                            	String idR2[]=tempIdR.split(":");
 	                            	laneID = idF1[3];	// sets the flowcell lane identification
 	                            	flowcellAndLane= idF1[2]+"-"+idF1[3];
-	                            	
+	                            		                            	
 	                            	// check for the lane ID and add if not present
 	                            	if(laneNumAL.isEmpty()){
 	                            		laneNumAL.add(laneID);
@@ -432,9 +480,11 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 	                             */
 	                            else if (rr[0] != null){
 	                                goodBarcodedForwardReads++;
-	                                    }
+	           //        System.out.println("F\t"+rr[0].paddedSequence);
+	                            }
 	                            else if (rr[1] != null){
 	                                goodBarcodedReverseReads++;
+	           //        System.out.println("R\t"+rr[1].paddedSequence);
 	                            }
 	                            // print to console so user gets a snapshot of what's happening and where in the file
 	                            if (allReads % 10000000 == 0) {
@@ -500,6 +550,35 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 
         	printListToFile(outputDir+File.separator+"Summary_Stats.txt",summaryOutputs);	// print final summary info to file
     }
+    
+    /**
+     * Parser that extracts the Illumina index sequence from the header for 
+     * results generated with CASAVA 1.4+
+     * @param headLine Header sequence
+     * @return Index sequence
+     */
+    private static String parseHeader1_4(String headLine){
+    	headLine.trim();
+    	String id=headLine.substring(headLine.indexOf("#")+1, headLine.indexOf("/"));
+    	id.trim();
+    	
+    	return id;
+    }
+    
+    /**
+     * Parser that extracts the Illumina index sequence from the header for 
+     * results generated with CASAVA 1.8+
+     * @param headLine Header sequence
+     * @return Index sequence
+     */
+    private static String parseHeader1_8(String headLine){
+    	headLine.trim();
+    	String id=headLine.substring(headLine.lastIndexOf(":")+1);
+    	id.trim();
+    	
+    	return id;
+    }
+    
     
     /**
      * Removes tags from a master map based on a minimum observation cut-off value.  Anything 

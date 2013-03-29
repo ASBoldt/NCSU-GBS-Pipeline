@@ -41,6 +41,14 @@ public class ParseBarcodeRead {
         int totalBarcodes=setupBarcodeFiles(new File(keyFile),  flowcell,  lane);
         System.out.println("Total barcodes found in lane:"+totalBarcodes);
     }
+    
+    public ParseBarcodeRead(String enzyme, String flowcell, String lane) {
+        if (enzyme != null){ chooseEnzyme(enzyme); }
+        else { System.out.println("You need to provide an enzyme for your read 2 file. Exiting."); System.exit(0); }
+
+       // int totalBarcodes=setupBarcodeFiles(new File(keyFile),  flowcell,  lane);
+       // System.out.println("Total barcodes found in lane:"+totalBarcodes);
+    }
 
     /**Determines which cut sites to look for, and sets them, based on the enzyme used to generate the GBS library.
      * For two-enzyme GBS  both enzymes MUST be specified and separated by a dash "-". e.g. PstI-MspI, SbfI-MspI
@@ -299,6 +307,26 @@ public class ParseBarcodeRead {
      * Does a string search for the any exact match barcode.  If found
      * that barcode is returned, otherwise returns null
      * @param queryS The sequence string to search
+     * @param headerBC
+     * @return	The exact match barcode or null if not match is found.
+     */
+    private Barcode findHeaderBestBarcode(String queryS, String headerBC) {
+
+    	int counter = theBarcodes.length;
+    	
+    	for(int i=0; i<counter;i++){
+    		//matches a barcode
+    		if(theBarcodes[i].getBarcode().equals(headerBC)){
+    			return theBarcodes[i];
+    		}
+    	}
+       return null;
+    }
+    
+    /**
+     * Does a string search for the any exact match barcode.  If found
+     * that barcode is returned, otherwise returns null
+     * @param queryS The sequence string to search
      * @return	The exact match barcode or null if not match is found.
      */
     private Barcode forceFindBestBarcode(String queryS) {
@@ -315,6 +343,7 @@ public class ParseBarcodeRead {
     	}
        return null;
     }
+
 
     /**
      * The barcode libraries used for this study can include two types of extraneous sequence
@@ -470,7 +499,7 @@ public class ParseBarcodeRead {
      * @return If all checks and bypasses are sucessful, returns a ReadBarcodeResult object that contains
      * a direct String variable that holds the tag sequence of interest.
      */
-    public ReadBarcodeResult forceParseReadIntoTagAndTaxa(String seqS, String qualS, boolean fastq, int minQual, int lengthToKeep) {
+    public ReadBarcodeResult parseReadIntoTagAndTaxaFlexible(String seqS, String qualS, boolean fastq, int minQual, int lengthToKeep) {
     	long[] read=new long[2];
         if((minQual>0)&&(qualS!=null)) {
             int firstBadBase=BaseEncoder.getFirstLowQualityPos(qualS, minQual);
@@ -505,7 +534,6 @@ public class ParseBarcodeRead {
         
         //this is slow 20% of total time.   Tag, cut site processed, padded with poly-A
         ReadBarcodeResult tagProcessingResults = removeSeqAfterSecondCutSite(genomicSeq, (byte)(2*chunkSize));
-        //ReadBarcodeResult tagProcessingResults = forceRemoveSeqAfterSecondCutSite(genomicSeq, (byte)(2*chunkSize)); 
 
         if(tagProcessingResults.length != lengthToKeep){
     	   return null; // sequence not desired length
@@ -525,7 +553,7 @@ public class ParseBarcodeRead {
     }
     
     
-    public ReadBarcodeResult noBarcodeKeyParseReadIntoTagAndTaxa(String seqS, String qualS, boolean fastq, int minQual, int lengthToKeep) {
+    public ReadBarcodeResult parseReadIntoTagAndTaxaNoBarcode(String seqS, String qualS, boolean fastq, int minQual, int lengthToKeep) {
     	long[] read=new long[2];
         if((minQual>0)&&(qualS!=null)) {
             int firstBadBase=BaseEncoder.getFirstLowQualityPos(qualS, minQual);
@@ -539,9 +567,6 @@ public class ParseBarcodeRead {
         
         if((miss!=-1)&&(miss<(maxBarcodeLength+2*chunkSize))) return null;  //bad sequence
         
-      //  Barcode bestBarcode=forceFindBestBarcode(seqS);
-      //  if(bestBarcode==null) return null;  //barcode missing
-        
         String genomicSeq=null;
         
         int cutSiteClose= -1;
@@ -554,17 +579,8 @@ public class ParseBarcodeRead {
         	genomicSeq=seqS.substring(cutSiteClose, seqS.length());
         }
         
-        //else if(cutSiteClose == 0){
-        	// take everything after the barcode 
-        //	genomicSeq=seqS.substring((seqS.indexOf(bestBarcode.getBarcode())+bestBarcode.barLength), seqS.length());
-        //}else if(cutSiteClose == 1){
-        	// take everything after the barcode +1 nucleotide, should be start of cut site remanant
-        //	genomicSeq=seqS.substring((seqS.indexOf(bestBarcode.getBarcode())+bestBarcode.barLength+1), seqS.length());
-        //}
-        
         //this is slow 20% of total time.   Tag, cut site processed, padded with poly-A
         ReadBarcodeResult tagProcessingResults = removeSeqAfterSecondCutSite(genomicSeq, (byte)(2*chunkSize));
-        //ReadBarcodeResult tagProcessingResults = forceRemoveSeqAfterSecondCutSite(genomicSeq, (byte)(2*chunkSize)); 
 
         if(tagProcessingResults.length != lengthToKeep){
     	   return null; // sequence not desired length
@@ -574,12 +590,102 @@ public class ParseBarcodeRead {
         
         read=BaseEncoder.getLongArrayFromSeq(hap);
         int pos=tagProcessingResults.length;
-        String enzymeID=setCutSiteAsID();
+        String taxonID=setCutSiteAsID();
 
         // the key below is the string hap is set directly as an unadulterated string that can be accessed by the
-        // calling method directly without conversion to and from bit encoding, the variable theEnzyme is used 
+        // calling method directly without conversion to and from bit encoding, the variable taxonID is used 
         // to placehold an identifier since the data does not have a separate set of barcode identifiers
-        ReadBarcodeResult rbr=new ReadBarcodeResult(read, hap, (byte)pos, enzymeID);
+        ReadBarcodeResult rbr=new ReadBarcodeResult(read, hap, (byte)pos, taxonID);
+
+        return rbr; 
+    }
+    
+    
+    public ReadBarcodeResult parseReadIntoTagAndTaxaHeader(String header, String seqS, String qualS, boolean fastq, int minQual, int lengthToKeep) {
+    	long[] read=new long[2];
+        if((minQual>0)&&(qualS!=null)) {
+            int firstBadBase=BaseEncoder.getFirstLowQualityPos(qualS, minQual);
+            if(firstBadBase<(maxBarcodeLength+(2*chunkSize))) return null;  
+        }
+        
+        int miss = -1;
+        if (fastq) { miss=seqS.indexOf('N'); } else { miss=seqS.indexOf('.'); }
+       
+        if((miss!=-1)&&(miss<(maxBarcodeLength+2*chunkSize))) return null;  //bad sequence
+        
+        Barcode bestBarcode=findHeaderBestBarcode(seqS, header);
+   
+        if(bestBarcode==null) return null;  //barcode missing
+      
+        String genomicSeq=null;
+        genomicSeq=seqS.substring(0, seqS.length());		//DEBUGGING
+        
+        int cutSiteClose= -1;
+        cutSiteClose=checkForCutSite(seqS, header);
+
+        if(cutSiteClose == -1){
+        	// cut site not found or within designated parameter
+        	return null; 
+        }else{
+      //System.out.println(cutSiteClose);
+        	genomicSeq=seqS.substring(cutSiteClose, seqS.length());
+      //System.out.println(genomicSeq);
+        }
+        
+        //this is slow 20% of total time.   Tag, cut site processed, padded with poly-A
+        ReadBarcodeResult tagProcessingResults = removeSeqAfterSecondCutSite(genomicSeq, (byte)(2*chunkSize));
+
+        if(tagProcessingResults.length != lengthToKeep){
+    	   return null; // sequence not desired length
+       }
+
+        String hap=tagProcessingResults.paddedSequence;  
+        
+        read=BaseEncoder.getLongArrayFromSeq(hap);
+        int pos=tagProcessingResults.length;
+        String taxonID=header;
+
+        // the key below is the string hap is set directly as an unadulterated string that can be accessed by the
+        // calling method directly without conversion to and from bit encoding, the variable taxonID is used 
+        // to placehold an identifier since the data does not have a separate set of barcode identifiers
+        ReadBarcodeResult rbr=new ReadBarcodeResult(read, hap, (byte)pos, taxonID);
+
+        return rbr; 
+    }
+    
+    public ReadBarcodeResult parseReadIntoTagAndTaxaHeadPoorSeq(String header, String seqS, String qualS, boolean fastq, int minQual, int lengthToKeep) {
+    	long[] read=new long[2];
+        if((minQual>0)&&(qualS!=null)) {
+            int firstBadBase=BaseEncoder.getFirstLowQualityPos(qualS, minQual);
+            if(firstBadBase<(maxBarcodeLength+(2*chunkSize))) return null;  
+        }
+        
+        int miss = -1;
+        if (fastq) { miss=seqS.indexOf('N'); } else { miss=seqS.indexOf('.'); }
+       
+        if((miss!=-1)&&(miss<(maxBarcodeLength+2*chunkSize))) return null;  //bad sequence
+        
+       // Barcode bestBarcode=findHeaderBestBarcode(seqS, header);   
+        //if(bestBarcode==null) return null;  //barcode missing
+      
+       // String genomicSeq=null;
+      //  genomicSeq=seqS.substring(0, seqS.length());		//DEBUGGING
+        
+        //this is slow 20% of total time.   Tag, cut site processed, padded with poly-A
+        ReadBarcodeResult tagProcessingResults = removeSeqAfterSecondCutSite(seqS, (byte)(2*chunkSize));
+
+        if(tagProcessingResults.length != lengthToKeep){return null;} // sequence not desired length
+
+        String hap=tagProcessingResults.paddedSequence;  
+        
+        read=BaseEncoder.getLongArrayFromSeq(hap);
+        int pos=tagProcessingResults.length;
+        String taxonID=header;
+
+        // the key below is the string hap is set directly as an unadulterated string that can be accessed by the
+        // calling method directly without conversion to and from bit encoding, the variable taxonID is used 
+        // to placehold an identifier since the data does not have a separate set of barcode identifiers
+        ReadBarcodeResult rbr=new ReadBarcodeResult(read, hap, (byte)pos, taxonID);
 
         return rbr; 
     }
@@ -600,10 +706,7 @@ public class ParseBarcodeRead {
     	}else if(present!=-1 && present==1){
     		response=1;
     	}
-    	
-    	//System.out.println(seqBegin);
-		//System.out.println(targetArea);
-    	//System.out.println(response);
+
     	return response;
     }
     
@@ -611,25 +714,34 @@ public class ParseBarcodeRead {
     	int response=-1;
     	int areaToScan = initialCutSiteRemnant[0].length()+1;
     	String seqBegin = seq.substring(0,(chunkSize/2)+areaToScan);
-    //	int indexOfBar = seqBegin.indexOf(bar.getBarcode());
-    //	String targetArea = seqBegin.substring((indexOfBar+bar.barLength),(indexOfBar+areaToScan+bar.barLength));
     	int present = -1;
     	
     	present = seqBegin.indexOf(initialCutSiteRemnant[0]);
-    	
-   // 	if (present!=-1 && present==0){
-   // 		response=0;
-   // 	}else if(present!=-1 && present==1){
-   // 		response=present;
-   // 	}
-    	
+
     	if (present!=-1){
     		response=present;
     	}
     	
-    	//System.out.println(seqBegin);
-		//System.out.println(targetArea);
-    	//System.out.println(response);
+    	return response;
+    }
+    
+    
+    private int checkForCutSite(String seq, String bar){
+    	int response=-1;
+    	int areaToScan = initialCutSiteRemnant[0].length()+1;
+    	String seqBegin = seq.substring(0,(chunkSize)+areaToScan);
+    	int indexOfBar = seqBegin.indexOf(bar);
+    	String targetArea = seqBegin.substring((indexOfBar+bar.length()),(indexOfBar+areaToScan+bar.length()));
+    	int present = -1;
+    	
+    	
+    	present = targetArea.indexOf(initialCutSiteRemnant[0]);
+    	
+    	if (present!=-1){
+    		response=present;
+    System.out.println(response);
+    	}
+
     	return response;
     }
     
