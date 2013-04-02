@@ -427,13 +427,8 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 	                                tempSeqF=rr[0].toString().substring(0,64);
 	                                tempIdF = rr[0].toString().substring(65);
 	                                
-	                                // check if stringent or lenient being used to determine where id information is stored
-	                                if(wiidInt%2==0){
-	                                tempSeqR=rr[1].paddedSequence;  // lenient, correctly handles Ns present in sequence
-	                                }else{
-	                                tempSeqR=rr[1].toString().substring(65);  // uncomment if stringent is being used
-	                                }
 	                                tempIdR = rr[1].toString().substring(65);
+	                                tempSeqR=rr[1].paddedSequence;  // use this option to grab ID info from any read2 file
 	                                
 	                                concatenation=stitch(tempSeqF, tempSeqR, tempIdF, tempIdR);
 	                                
