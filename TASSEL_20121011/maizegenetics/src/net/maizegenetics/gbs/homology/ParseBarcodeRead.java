@@ -509,7 +509,7 @@ public class ParseBarcodeRead {
         int miss = -1;
         if (fastq) { miss=seqS.indexOf('N'); } else { miss=seqS.indexOf('.'); }
         
-        if(miss!=-1)System.out.println(miss);
+       // if(miss!=-1)System.out.println("parseReadIntoTagAndTaxaFlexible "+miss);  //DEBUGGING
         
         if((miss!=-1)&&(miss<(maxBarcodeLength+2*chunkSize))) return null;  //bad sequence
         
@@ -563,7 +563,7 @@ public class ParseBarcodeRead {
         int miss = -1;
         if (fastq) { miss=seqS.indexOf('N'); } else { miss=seqS.indexOf('.'); }
         
-        if(miss!=-1)System.out.println(miss);
+       // if(miss!=-1)System.out.println("parseReadIntoTagAndTaxaNoBarcode "+miss);  // DEBUGGING
         
         if((miss!=-1)&&(miss<(maxBarcodeLength+2*chunkSize))) return null;  //bad sequence
         
@@ -731,15 +731,20 @@ public class ParseBarcodeRead {
     	int areaToScan = initialCutSiteRemnant[0].length()+1;
     	String seqBegin = seq.substring(0,(chunkSize)+areaToScan);
     	int indexOfBar = seqBegin.indexOf(bar);
-    	String targetArea = seqBegin.substring((indexOfBar+bar.length()),(indexOfBar+areaToScan+bar.length()));
     	int present = -1;
+    	int targetStart = indexOfBar+bar.length();
+    	int targetStop = indexOfBar+areaToScan+bar.length();
+    	String targetArea = null;
     	
+    	if(targetStart < seqBegin.length() && targetStop <= seqBegin.length()){
+    		targetArea = seqBegin.substring(targetStart,targetStop);
+    	}
     	
     	present = targetArea.indexOf(initialCutSiteRemnant[0]);
     	
     	if (present!=-1){
     		response=present;
-    System.out.println(response);
+   // System.out.println(response);
     	}
 
     	return response;

@@ -129,7 +129,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             
             if(engine.getBoolean("-wiid")){ 
             	wiid = engine.getString("-wiid"); 
-            	if(Integer.parseInt(wiid)<6 && Integer.parseInt(wiid)>0){
+            	if(Integer.parseInt(wiid)<10 && Integer.parseInt(wiid)>0){
             		wiidInt=Integer.parseInt(wiid);
             	}else{ printUsage(); throw new IllegalArgumentException("Please select an option between 1-6.");}
             }
