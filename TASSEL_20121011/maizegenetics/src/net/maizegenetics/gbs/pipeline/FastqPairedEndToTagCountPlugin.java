@@ -80,7 +80,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             + "				6 - Barcode in read1 and Illumina indexing (CASAVA 1.4-1.7 format) in read2 header (lenient on read2 sequence)\n"
             + "				7 - Barcode in read1 and Illumina indexing (CASAVA 1.8 format) in read2 header (lenient on read2 sequence)\n"
             + "				8 - Barcode in read1 and Illumina indexing (CASAVA 1.8 format) in read2 header (lenient on read2 sequence)\n"
-            + "				9 - Barcode in read1 only (lenient on read1, no checks on read2)\n"
+            + "				9 - Barcode in read1 only (lenient on read1, no checks on read2, just grabs first 64 bases)\n"
             + " -e 	Enzyme used to create the GBS library, if it differs from the one listed in the key file.\n"
             + " -s 	Max good reads per lane. (Optional. Default will try to process entire file).\n"
             + " -c 	Minimum tag count (default is 1).\n"
