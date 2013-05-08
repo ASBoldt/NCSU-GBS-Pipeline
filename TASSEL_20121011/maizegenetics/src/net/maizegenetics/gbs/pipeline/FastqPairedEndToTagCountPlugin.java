@@ -48,6 +48,9 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
     static String keyFileMod = null; // user input from CLI on whether to modify read2 barcodes
     static String wiid = null;	// trigger for switch to determine which method to use for read2 identification, String type because don't want to modify arg parser to handle ints
     static int wiidInt=0;
+    static String r1n=null;	// user input from CLI 
+    static String r2n=null; // user input from CLI 
+    static int stringency = 0;
     int maxGoodReads = 0;	// can be set by user args, left at 0 means process entire file
     int minCount =1;	// can be set by user args, left at 1 means count everything
     String outputDir=null;
@@ -72,7 +75,13 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             + " -k 	Key file listing barcodes distinguishing the samples\n"
             + " -km 	Specify if you want to modify your read2 barcodes as in the documentation (yes/no)\n"
             + " -wiid  	How are you barcoding or indexing your reads?:\n"
-            + "				1 - Barcode in read1 only (strict on read2 sequence)\n"
+            + "				1 - Barcode in read1 only\n"
+            + "				2 - Barcodes in both read1 and read2\n"
+            + "				3 - Barcode in read1 and Illumina indexing (CASAVA 1.4-1.7 format) in read2 header\n"
+            + "				4 - Barcode in read1 and Illumina indexing (CASAVA 1.8 format) in read2 header\n"
+            + "				5 - Barcode in read1 only, sequence generally poor, just grab first 64 bases regardless (diangostic)\n"
+            
+         /*   + "				1 - Barcode in read1 only (strict on read2 sequence)\n"
             + "				2 - Barcode in read1 only (lenient on read2 sequence)\n"
             + "				3 - Barcodes in both read1 and read2 (strict on read2 sequence)\n"
             + "				4 - Barcodes in both read1 and read2 (lenient on read2 sequence)\n"
@@ -81,6 +90,9 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             + "				7 - Barcode in read1 and Illumina indexing (CASAVA 1.8 format) in read2 header (lenient on read2 sequence)\n"
             + "				8 - Barcode in read1 and Illumina indexing (CASAVA 1.8 format) in read2 header (lenient on read2 sequence)\n"
             + "				9 - Barcode in read1 only (lenient on read1, no checks on read2, just grabs first 64 bases)\n"
+         */   
+            + " -r1n 	Accept missing or uncertain bases in tag area for read 1 (yes/no).\n"
+            + " -r2n 	Accept missing or uncertain bases in tag area for read 2 (yes/no).\n"
             + " -e 	Enzyme used to create the GBS library, if it differs from the one listed in the key file.\n"
             + " -s 	Max good reads per lane. (Optional. Default will try to process entire file).\n"
             + " -c 	Minimum tag count (default is 1).\n"
@@ -115,6 +127,8 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
                 engine.add("-o", "--output-file", true);
                 engine.add("-km", "--key-modification", true);
                 engine.add("-wiid", "--where-is-identification", true);
+                engine.add("-r1n", "--read-1-Ns", true);
+                engine.add("-r2n", "--read-2-Ns", true);
                 engine.parse(args);
             }
 
@@ -129,11 +143,24 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             
             if(engine.getBoolean("-wiid")){ 
             	wiid = engine.getString("-wiid"); 
-            	if(Integer.parseInt(wiid)<10 && Integer.parseInt(wiid)>0){
+            	if(Integer.parseInt(wiid)<5 && Integer.parseInt(wiid)>0){
             		wiidInt=Integer.parseInt(wiid);
-            	}else{ printUsage(); throw new IllegalArgumentException("Please select an option between 1-6.");}
+            	}else{ printUsage(); throw new IllegalArgumentException("Please select an option between 1-5.");}
             }
             else{ printUsage(); throw new IllegalArgumentException("Please specify how you are identifying your tags.");}
+            
+            if(engine.getBoolean("-r1n")){ r1n = engine.getString("-r1n");}
+            else{ printUsage(); throw new IllegalArgumentException("Please specify if you want to accept N scored bases in your read 1 sequences.");}
+
+            if(engine.getBoolean("-r2n")){ r2n = engine.getString("-r2n");}
+            else{ printUsage(); throw new IllegalArgumentException("Please specify if you want to accept N scored bases in your read 2 sequences.");}
+            
+            //Determine stringency level
+            if(r1n.equals("yes") && r2n.equals("yes")){stringency=1;}	// lowest stringency
+            else if(r1n.equals("no") && r2n.equals("no")){stringency=2;}	// highest stringency
+            else if(r1n.equals("yes") && r2n.equals("no")){stringency=3;}	// mixed
+            else if(r1n.equals("no") && r2n.equals("yes")){stringency=4;}	//mixed
+            else{ printUsage(); throw new IllegalArgumentException("There is a problem determining your stringency preferences, please check your r1n and r2n flags");}
             
             if(engine.getBoolean("-e")){ enzyme = engine.getString("-e"); }
             else{ 
@@ -378,6 +405,23 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 	                             * comment-out the line commented as lenient and un-comment the line marked stringent for rr[1]
 	                             * in the next few lines (directly below and lines 5+6 in the first if-statement.
 	                             */
+	                            
+	                            switch(wiidInt){
+	                            case 1: switch(stringecy){
+	                            			case 1:
+	                            			case 2:
+	        	                            case 3:
+	        	                            case 4:
+	                            	break;
+	                            	}
+	                            case 2:
+	                            case 3:
+	                            case 4:
+	                            case 5:
+	                            default {System.out.println("There was a problem determing how where your identifiers are located, check your -wiid flag.\nExiting.");
+	                            	System.exit(0);}
+	                            
+	                            }
 	                            
 	                            
 	                            
