@@ -143,7 +143,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
             
             if(engine.getBoolean("-wiid")){ 
             	wiid = engine.getString("-wiid"); 
-            	if(Integer.parseInt(wiid)<5 && Integer.parseInt(wiid)>0){
+            	if(Integer.parseInt(wiid)<6 && Integer.parseInt(wiid)>0){
             		wiidInt=Integer.parseInt(wiid);
             	}else{ printUsage(); throw new IllegalArgumentException("Please select an option between 1-5.");}
             }
@@ -407,24 +407,99 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 	                             */
 	                            
 	                            switch(wiidInt){
-	                            case 1: switch(stringecy){
-	                            			case 1:
-	                            			case 2:
-	        	                            case 3:
-	        	                            case 4:
+	                            case 1: switch(stringency){
+	                            			//lowest stringency
+	                            			case 1:rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, false, 0,64);
+		                            			   rr[1] = thePBR[1].parseReadIntoTagAndTaxaNoBarcode(sequenceR, qualityScoreR, false, 0,64);
+		                            			   break;
+	                            			// higest stringency
+	                            			case 2:rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);
+	                            			       rr[1] = thePBR[1].parseReadIntoTagAndTaxaNoBarcode(sequenceR, qualityScoreR, true, 0,64);
+	                            			       break;
+	                            			//lenient read1	
+	        	                            case 3:rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, false, 0,64);
+	                            			       rr[1] = thePBR[1].parseReadIntoTagAndTaxaNoBarcode(sequenceR, qualityScoreR, true, 0,64);
+	                            			       break;
+	        	                            //lenient read2
+	        	                            case 4:rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);
+	                            			       rr[1] = thePBR[1].parseReadIntoTagAndTaxaNoBarcode(sequenceR, qualityScoreR, false, 0,64);
+	                            			       break;
+	                            	}break;
+	                            case 2:switch(stringency){
+			                    			//lowest stringency
+			                    			case 1:rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, false, 0,64);	
+			                            		   rr[1] = thePBR[1].parseReadIntoTagAndTaxaFlexible(sequenceR, qualityScoreR, false, 0,64);	
+			                        			   break;
+			                    			// higest stringency
+			                    			case 2:rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);	
+			                            		   rr[1] = thePBR[1].parseReadIntoTagAndTaxaFlexible(sequenceR, qualityScoreR, true, 0,64);
+			                    			       break;
+			                    			//lenient read1	
+				                            case 3:rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, false, 0,64);
+			                            		   rr[1] = thePBR[1].parseReadIntoTagAndTaxaFlexible(sequenceR, qualityScoreR, true, 0,64);
+			                    			       break;
+				                            //lenient read2
+				                            case 4:rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);
+			                            		   rr[1] = thePBR[1].parseReadIntoTagAndTaxaFlexible(sequenceR, qualityScoreR, false, 0,64);
+			                    			       break;
+					                 }break;
+	                            case 3:switch(stringency){
+			                    			//lowest stringency
+			                    			case 1:indexBC = parseHeader1_4(hiseqID);
+				                            		rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, false, 0,64);
+					                            	rr[1] = thePBR[1].parseReadIntoTagAndTaxaHeader(indexBC,sequenceR, qualityScoreR, false, 0,64);	
+			                        			   break;
+			                    			// higest stringency
+			                    			case 2:indexBC = parseHeader1_4(hiseqID);
+		                            				rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);
+		                            				rr[1] = thePBR[1].parseReadIntoTagAndTaxaHeader(indexBC,sequenceR, qualityScoreR, true, 0,64);
+			                    			       break;
+			                    			//lenient read1	
+				                            case 3:indexBC = parseHeader1_4(hiseqID);
+		                            				rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, false, 0,64);
+		                            				rr[1] = thePBR[1].parseReadIntoTagAndTaxaHeader(indexBC,sequenceR, qualityScoreR, true, 0,64);
+			                    			       break;
+				                            //lenient read2
+				                            case 4:indexBC = parseHeader1_4(hiseqID);
+		                            				rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);
+		                            				rr[1] = thePBR[1].parseReadIntoTagAndTaxaHeader(indexBC,sequenceR, qualityScoreR, false, 0,64);
+			                    			       break;
+					                 }break;
+	                            case 4:switch(stringency){
+			                    			//lowest stringency
+			                    			case 1:indexBC = parseHeader1_8(hiseqID);
+				                            		rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, false, 0,64);
+					                            	rr[1] = thePBR[1].parseReadIntoTagAndTaxaHeader(indexBC,sequenceR, qualityScoreR, false, 0,64);	
+			                        			   break;
+			                    			// higest stringency
+			                    			case 2:indexBC = parseHeader1_8(hiseqID);
+			                        				rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);
+			                        				rr[1] = thePBR[1].parseReadIntoTagAndTaxaHeader(indexBC,sequenceR, qualityScoreR, true, 0,64);
+			                    			       break;
+			                    			//lenient read1	
+				                            case 3:indexBC = parseHeader1_8(hiseqID);
+			                        				rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, false, 0,64);
+			                        				rr[1] = thePBR[1].parseReadIntoTagAndTaxaHeader(indexBC,sequenceR, qualityScoreR, true, 0,64);
+			                    			       break;
+				                            //lenient read2
+				                            case 4:indexBC = parseHeader1_8(hiseqID);
+			                        				rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);
+			                        				rr[1] = thePBR[1].parseReadIntoTagAndTaxaHeader(indexBC,sequenceR, qualityScoreR, false, 0,64);
+			                    			       break;
+					                 }break;
+					            //lenient on read1, grabs first 65 bases from read2 with no quality checking, no stringency 
+	                            case 5:{
+	                            	rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, false, 0,64);	// lenient
+	                        		rr[1] = thePBR[1].parseReadIntoTagAndTaxaHeadPoorSeq(indexBC,sequenceR, qualityScoreR, true, 0,64);	// grabs first 64 bases
 	                            	break;
-	                            	}
-	                            case 2:
-	                            case 3:
-	                            case 4:
-	                            case 5:
-	                            default {System.out.println("There was a problem determing how where your identifiers are located, check your -wiid flag.\nExiting.");
+	                            }
+	                            default: {System.out.println("There was a problem determing how where your identifiers are located, check your -wiid flag.\nExiting.");
 	                            	System.exit(0);}
 	                            
 	                            }
 	                            
 	                            
-	                            
+	                            /*
 	                            switch(wiidInt){
 	                            // case 1 and 2 read the barcode from read1 only, returning the cut site remnant from read2 as identifier
 	                            case 1: rr[0] = thePBR[0].parseReadIntoTagAndTaxa(sequenceF, qualityScoreF, true, 0,64);	// stringent
@@ -463,6 +538,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 		                        		rr[1] = thePBR[1].parseReadIntoTagAndTaxaHeadPoorSeq(indexBC,sequenceR, qualityScoreR, true, 0,64);	// grabs first 64 bases
 		                            	break;
 	                            }
+	                            */
 	                            if (rr[0] != null && rr[1] !=null){
 	                                goodBarcodedReads+=2;	
 	                                bothGood++;	// increment the lane counter
