@@ -1425,7 +1425,7 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
      * @param numberOfPairs Number of file pairs
      */
     private static void checkForPairs(int numberOfPairs){
-    	if (numberOfPairs % 2 !=0){
+    	if ((numberOfPairs % 2 !=0) || (numberOfPairs ==1)){
     		System.out.println("There are an odd number of files so there might be problems assigning keyfiles"); 
     		System.out.println("The number of files detected was "+numberOfPairs); 
         }
