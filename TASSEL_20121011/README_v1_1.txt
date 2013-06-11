@@ -1,9 +1,9 @@
 ================================================================================
 NCSU Fork of TASSEL for Genotyping by Sequencing
 
-Software version: beta 0.9
+Software version: v1.1
 
-Date: 2013-02-21
+Date: 2013-06-10
 
 Legal information:
 This software is provided "AS IS".  Use at your own discretion. Use at your own 
@@ -142,6 +142,22 @@ GETTING STARTED TIPS:
 
 * The program will take several hours to run, and will take longer with each lane
 	of data that you process.
+** Mandatory flags to set in the calling command
+
+	-km (yes/no) Specify if you want to modify your read2 barcodes.  This flag calls an algorithm that generates permutations of your read2 barcodes by substitution every other base at each position, and deleting one base at each position.  The original barcode is included intact. Use this if your sequence is of poorer quality and you feel that you are missing hits because of a sequencing miscall or error.  WARNING: If your barcodes are used as identifiers and are not of sufficient uniqueness, using this option will create duplicate barcodes and will potential create problems in clearly identifying your sample.
+
+	-wiid (1-5) = where-is-identification = The following are the options that can be used here:
+		1 = Barcode in read1 only
+		2 = Barcodes in both read2 and read2
+		3 = Barcode in read1 and Illumina indexing (CASAVA 1.4-1.7 format) in read2 header
+		4 = Barcode in read1 and Illumina indexing (CASAVA 1.8 format) in read2 header
+		5 = Barcode in read1 only, sequence generally poor, just grab first 64 bases regardless (this is for diagnostic purposes if your sequence is poor)
+
+	-r1n (yes/no) = Accept missing or uncertain bases in tag area for read 1.
+  Determines level of stringency when scanning for barcodes.  Dependent on your barcode keyfile since even if you set this to yes (less stringent) the algorithm still looks for exact matches to your keyfiles, so you would have to add permutations of your barcode with Ns present.
+
+	-r2n  (yes/no)= Accept missing or uncertain bases in tag area for read 2.  Determines level of stringency when scanning for barcodes.  Dependent on your barcode keyfile since even if you set this to yes (less stringent) the algorithm still looks for exact matches to your keyfiles, so you would have to add permutations of your barcode with Ns present.  This can be used in conjunction with the -km flag to allow for 1 N value to be present in your keyfile automatically.  If you want to allow for more than 1 N you will have to make the additions and adjustments to your keyfile.
+
 *  Optional flags that can be set in the calling command
 	-s = maximum_count = the default setting is to try and process the 
 		entire data set per lane.  This can be extremely memory intensive.  
@@ -181,6 +197,8 @@ Important known bugs, problems, or limitations:
 ================================================================================
 Version history
 
+v1.1 = Added flags to modify read2 barcode, set stringeny on read1 and read2 barcodes,
+	identify where barcodes and identifiers are used in the sequence files
 
 
 
