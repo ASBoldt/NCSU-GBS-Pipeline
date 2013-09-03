@@ -306,17 +306,16 @@ public class ParseBarcodeRead {
     /**
      * Does a string search for the any exact match barcode.  If found
      * that barcode is returned, otherwise returns null
-     * @param queryS The sequence string to search
-     * @param headerBC
-     * @return	The exact match barcode or null if not match is found.
+     * @param headerBC is the index string from the sequence file that should contain a barcode
+     * @return	The match barcode found in the header or null if not match is found.
      */
-    private Barcode findHeaderBestBarcode(String queryS, String headerBC) {
+    private Barcode findHeaderBestBarcode(String headerBC) {
 
     	int counter = theBarcodes.length;
     	
     	for(int i=0; i<counter;i++){
     		//matches a barcode
-    		if(theBarcodes[i].getBarcode().equals(headerBC)){
+    		if(theBarcodes[i].getBarcode().contains(headerBC)){
     			return theBarcodes[i];
     		}
     	}
@@ -613,24 +612,27 @@ public class ParseBarcodeRead {
        
         if((miss!=-1)&&(miss<(maxBarcodeLength+2*chunkSize))) return null;  //bad sequence
         
-        Barcode bestBarcode=findHeaderBestBarcode(seqS, header);
+        Barcode bestBarcode=findHeaderBestBarcode(header);
    
         if(bestBarcode==null) return null;  //barcode missing
       
         String genomicSeq=null;
         genomicSeq=seqS.substring(0, seqS.length());		//DEBUGGING
         
+        /*  TODO the necessity of cutSiteClose and related methods needs to be
+         * reviewed.  It may not be necessary for indexed samples, especially
+         * if the stringency is set to high, and if set to low presumably post-processing
+         * will draw out miss-called or maladjusted cut site remnants
         int cutSiteClose= -1;
-        cutSiteClose=checkForCutSite(seqS, header);
+        cutSiteClose=checkForCutSite(seqS);
 
         if(cutSiteClose == -1){
         	// cut site not found or within designated parameter
         	return null; 
         }else{
-      //System.out.println(cutSiteClose);
-        	genomicSeq=seqS.substring(cutSiteClose, seqS.length());
-      //System.out.println(genomicSeq);
-        }
+        */
+        	genomicSeq=seqS.substring(0, seqS.length());
+      //  }
         
         //this is slow 20% of total time.   Tag, cut site processed, padded with poly-A
         ReadBarcodeResult tagProcessingResults = removeSeqAfterSecondCutSite(genomicSeq, (byte)(2*chunkSize));
@@ -643,11 +645,11 @@ public class ParseBarcodeRead {
         
         read=BaseEncoder.getLongArrayFromSeq(hap);
         int pos=tagProcessingResults.length;
-        String taxonID=header;
+        String taxonID=bestBarcode.getBarcode();
 
         // the key below is the string hap is set directly as an unadulterated string that can be accessed by the
         // calling method directly without conversion to and from bit encoding, the variable taxonID is used 
-        // to placehold an identifier since the data does not have a separate set of barcode identifiers
+        // to placehold identification
         ReadBarcodeResult rbr=new ReadBarcodeResult(read, hap, (byte)pos, taxonID);
 
         return rbr; 
@@ -722,31 +724,6 @@ public class ParseBarcodeRead {
     		response=present;
     	}
     	
-    	return response;
-    }
-    
-    
-    private int checkForCutSite(String seq, String bar){
-    	int response=-1;
-    	int areaToScan = initialCutSiteRemnant[0].length()+1;
-    	String seqBegin = seq.substring(0,(chunkSize)+areaToScan);
-    	int indexOfBar = seqBegin.indexOf(bar);
-    	int present = -1;
-    	int targetStart = indexOfBar+bar.length();
-    	int targetStop = indexOfBar+areaToScan+bar.length();
-    	String targetArea = null;
-    	
-    	if(targetStart < seqBegin.length() && targetStop <= seqBegin.length()){
-    		targetArea = seqBegin.substring(targetStart,targetStop);
-    	}
-    	
-    	present = targetArea.indexOf(initialCutSiteRemnant[0]);
-    	
-    	if (present!=-1){
-    		response=present;
-   // System.out.println(response);
-    	}
-
     	return response;
     }
     
