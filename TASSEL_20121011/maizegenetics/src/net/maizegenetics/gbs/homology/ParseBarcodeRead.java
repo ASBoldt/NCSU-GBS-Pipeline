@@ -316,9 +316,15 @@ public class ParseBarcodeRead {
     	for(int i=0; i<counter;i++){
     		//matches a barcode
     		if(theBarcodes[i].getBarcode().contains(headerBC)){
+    			//DEBUGGING ELEMENT
+    			System.out.println("Barcode detected in header is: " + theBarcodes[i].getBarcode());
+    			// END DEBUGGING
     			return theBarcodes[i];
     		}
     	}
+    	//DEBUGGING ELEMENT
+		System.out.println("NO BARCODE MATCHED IN HEADER: " + headerBC);
+		// END DEBUGGING
        return null;
     }
     

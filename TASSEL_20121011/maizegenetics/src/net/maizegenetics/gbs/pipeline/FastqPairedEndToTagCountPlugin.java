@@ -380,6 +380,17 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
 	                pairedFileNames.add(outputLaneFilename);	// logs filename for processing later
 
 	                System.out.println("Begin reading raw sequence files");
+	                
+	                //DEBUGGING ELEMENTS
+	                System.out.println("DEBUGGING ELEMENTS:\n " +
+	                		"KeyFileMod: " + keyFileMod + "\n" +
+	                		"wiid as String: " + wiid + "\n" +
+	                		"wiid as Int: " + wiidInt + "\n" +
+	                		"r1n: " + r1n + "\n" +
+	                		"r2n: " + r2n + "\n" +
+	                		"stringency: " + stringency + "\n");
+	                // END DEBUGGING
+	                
 	                resetTime();	//reporter
 	                
 	                while (((tempF = br1.readLine()) != null && (tempR = br2.readLine()) != null) && 
@@ -664,6 +675,16 @@ public class FastqPairedEndToTagCountPlugin extends AbstractPlugin {
         	printIds(outputDir);	// print barcode ID summary
 
         	printListToFile(outputDir+File.separator+"Summary_Stats.txt",summaryOutputs);	// print final summary info to file
+        	
+        	 //DEBUGGING ELEMENTS
+            System.out.println("DEBUGGING ELEMENTS:\n " +
+            		"KeyFileMod: " + keyFileMod + "\n" +
+            		"wiid as String: " + wiid + "\n" +
+            		"wiid as Int: " + wiidInt + "\n" +
+            		"r1n: " + r1n + "\n" +
+            		"r2n: " + r2n + "\n" +
+            		"stringency: " + stringency + "\n");
+            // END DEBUGGING
     }
     
     /**
